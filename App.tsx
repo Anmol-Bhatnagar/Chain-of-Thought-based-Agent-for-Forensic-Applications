@@ -440,7 +440,7 @@ const App: React.FC = () => {
        const nodeName = currentCaseState.nodes[nodeKey as keyof typeof currentCaseState.nodes].name;
 
        addTraceStep('PLAN', `Supervisor Decision: Run ${nodeName}`, `Reason: ${plan.reasoning}`);
-       addLog('PLANNER', `Next: ${nodeName} // ${plan.reasoning}`, 'info');
+       addLog('PLANNER', `Next: ${nodeName} - ${plan.reasoning}`, 'info');
        
        updateNodeState(nodeKey as any, { status: 'processing' });
        updateState({ currentStep: `Running ${nodeName}...` });
@@ -893,7 +893,7 @@ const App: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                      {Object.entries(pendingWeights).map(([key, weight]) => (
+                      {(Object.entries(pendingWeights) as [string, number][]).map(([key, weight]) => (
                           <div key={key}>
                               <div className="flex justify-between items-center mb-1">
                                   <label className="text-[10px] text-slate-400 uppercase font-mono tracking-wide flex items-center gap-2">

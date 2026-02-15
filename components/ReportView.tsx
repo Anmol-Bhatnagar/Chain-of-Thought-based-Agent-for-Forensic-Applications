@@ -17,7 +17,7 @@ const ReportView: React.FC<ReportViewProps> = ({ caseData }) => {
     const margin = 20;
     const contentWidth = pageWidth - (margin * 2);
 
-    // --- HELPER FUNCTIONS ---
+
     const checkPageBreak = (spaceNeeded: number) => {
       if (y + spaceNeeded > 280) {
         doc.addPage();
@@ -47,26 +47,26 @@ const ReportView: React.FC<ReportViewProps> = ({ caseData }) => {
         y += (lines.length * 5) + 5;
     };
 
-    // --- PDF CONTENT ---
 
-    // 1. Header
+
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
     doc.setTextColor(40, 40, 40);
     doc.text("KSHURA FORENSIC REPORT", pageWidth / 2, y, { align: "center" });
     y += 10;
-    
+
     doc.setFontSize(10);
     doc.setFont("courier", "normal");
     doc.setTextColor(100);
     doc.text(`GENERATED: ${new Date().toLocaleString()}`, pageWidth / 2, y, { align: "center" });
     y += 20;
 
-    // 2. Case Info Box
+
     doc.setFillColor(245, 247, 250);
     doc.roundedRect(margin, y, contentWidth, 35, 3, 3, "F");
     y += 10;
-    
+
     doc.setFont("courier", "bold");
     doc.setTextColor(0);
     doc.text(`CASE ID: ${caseData.caseId}`, margin + 5, y);
@@ -79,55 +79,55 @@ const ReportView: React.FC<ReportViewProps> = ({ caseData }) => {
     doc.text(`SCORE:   ${score.toFixed(1)}/100`, margin + 5, y);
     y += 15;
 
-    // 3. Executive Summary
+
     addHeading("EXECUTIVE SUMMARY");
     addText(caseData.executiveSummary || "", 11, "times", "normal", [0, 0, 0]);
     y += 5;
 
-    // 4. Detailed Technical Findings
+
     addHeading("TECHNICAL FINDINGS LOG");
 
     (Object.values(caseData.nodes) as NodeResult<any>[]).forEach(node => {
         if (node.status !== 'completed') return;
 
         checkPageBreak(30);
-        
-        // Node Title Bar
+
+
         const riskColor = node.riskLevel === 'CRITICAL' ? [255, 230, 230] : node.riskLevel === 'HIGH' ? [255, 240, 230] : [240, 255, 240];
         doc.setFillColor(riskColor[0], riskColor[1], riskColor[2]);
         doc.rect(margin, y, contentWidth, 8, "F");
-        
+
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.setTextColor(0);
         doc.text(`${node.name.toUpperCase()}`, margin + 2, y + 5.5);
-        
+
         const riskTextColor = node.riskLevel === 'CRITICAL' ? [200, 0, 0] : [0, 100, 0];
         doc.setTextColor(riskTextColor[0], riskTextColor[1], riskTextColor[2]);
         doc.setFont("helvetica", "bold");
         doc.text(`RISK: ${node.riskLevel}`, margin + 130, y + 5.5);
-        
+
         y += 12;
 
-        // Node Inference
+
         addText(`Findings: ${node.inference}`, 10, "courier", "normal", [50, 50, 50]);
         y += 2;
     });
 
-    // 5. Supervisor Chain of Thought (TRACE)
+
     doc.addPage();
     y = 20;
     addHeading("SUPERVISOR AGENT: CHAIN OF THOUGHT");
-    
+
     doc.setFont("courier", "normal");
     doc.setFontSize(9);
     doc.setTextColor(80, 80, 80);
 
-    // Loop through analysisTrace
+
     if (caseData.analysisTrace && caseData.analysisTrace.length > 0) {
        caseData.analysisTrace.forEach((step, index) => {
            checkPageBreak(30);
-           
+
            doc.setFont("courier", "bold");
            doc.setTextColor(50, 50, 50);
            doc.text(`[STEP ${index + 1}] ${step.timestamp} - ${step.type}`, margin, y);
@@ -137,7 +137,7 @@ const ReportView: React.FC<ReportViewProps> = ({ caseData }) => {
            doc.setTextColor(80, 80, 80);
            doc.text(`Action: ${step.title}`, margin + 5, y);
            y += 5;
-           
+
            const detailLines = doc.splitTextToSize(step.detail, contentWidth - 5);
            doc.text(detailLines, margin + 5, y);
            y += (detailLines.length * 4) + 6;
@@ -146,7 +146,7 @@ const ReportView: React.FC<ReportViewProps> = ({ caseData }) => {
        addText("No trace data available.", 10, "courier", "italic", [100, 100, 100]);
     }
 
-    // Agent Synthesis Logic (The text explanation)
+
     y += 10;
     checkPageBreak(30);
     doc.setFont("helvetica", "bold");
@@ -155,7 +155,7 @@ const ReportView: React.FC<ReportViewProps> = ({ caseData }) => {
     addText(caseData.agentReasoning || "Log data unavailable.", 9, "courier", "normal", [80, 80, 80]);
 
 
-    // Footer numbering
+
     const pageCount = doc.getNumberOfPages();
     for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -178,7 +178,7 @@ const ReportView: React.FC<ReportViewProps> = ({ caseData }) => {
             <button className="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 rounded flex items-center gap-2 transition-colors">
                 <Share2 className="w-3 h-3" /> Share
             </button>
-            <button 
+            <button
                 onClick={handleDownloadPDF}
                 className="px-3 py-1.5 text-xs bg-cyan-600 hover:bg-cyan-500 text-white rounded flex items-center gap-2 transition-colors font-medium active:scale-95 transform"
             >
@@ -225,7 +225,7 @@ const ReportView: React.FC<ReportViewProps> = ({ caseData }) => {
                          <div key={idx} className="flex gap-4 border-l-2 border-slate-800 pl-4 pb-1 relative">
                             {/* Timeline Dot */}
                             <div className={`absolute -left-[5px] top-1 w-2 h-2 rounded-full ${step.type === 'PLAN' ? 'bg-cyan-500' : 'bg-emerald-500'}`}></div>
-                            
+
                             <div className="w-16 flex-shrink-0 text-slate-500 text-[10px] pt-0.5">
                                 {step.timestamp}
                             </div>
@@ -245,7 +245,7 @@ const ReportView: React.FC<ReportViewProps> = ({ caseData }) => {
                  ) : (
                      <p className="text-slate-500 italic">No execution trace available.</p>
                  )}
-                 
+
                  {/* Final Logic Block */}
                  <div className="mt-8 pt-4 border-t border-slate-800 border-dashed">
                      <p className="text-slate-500 mb-2 font-bold uppercase text-[10px]">Final Synthesis Logic:</p>

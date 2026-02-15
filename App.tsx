@@ -5,16 +5,16 @@ import NodeCard from './components/NodeCard';
 import ReportView from './components/ReportView';
 import MapPreview from './components/MapPreview';
 import NavBar from './components/NavBar';
-import { 
-  Scan, Camera, Fingerprint, Layers, Sun, Copy, Hash, MapPin, 
+import {
+  Scan, Camera, Fingerprint, Layers, Sun, Copy, Hash, MapPin,
   UploadCloud, PlayCircle, Terminal, AlertOctagon, FileInput, Search, BrainCircuit,
   Filter, X, Shield, ShoppingBag, Briefcase, Binary, ScanEye, Database, Settings as SettingsIcon, CheckCircle2, RotateCcw, Sliders, Save
 } from 'lucide-react';
-import { 
-  extractMetadata, startGlobalAnalysis, 
-  runDeepfakeNode, runDCTNode, runPRNUNode, runELANode, 
+import {
+  extractMetadata, startGlobalAnalysis,
+  runDeepfakeNode, runDCTNode, runPRNUNode, runELANode,
   runLightingNode, runCloneNode, runNoiseNode, runStringsNode, runRegionQualityNode,
-  generateHash, delay, GlobalAnalysisContext 
+  generateHash, delay, GlobalAnalysisContext
 } from './services/forensicSimulator';
 import { generateForensicReport, getNextInvestigationStep } from './services/geminiService';
 
@@ -61,14 +61,14 @@ const initialCaseState: ForensicCase = {
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [caseData, setCaseData] = useState<ForensicCase>(initialCaseState);
-  
+
 
   const [history, setHistory] = useState<Record<InvestigationMode, ForensicCase[]>>({
     general: [],
     insurance: [],
     customer_care: []
   });
-  
+
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -84,22 +84,22 @@ const App: React.FC = () => {
   const [pendingMode, setPendingMode] = useState<InvestigationMode>('general');
   const [pendingWeights, setPendingWeights] = useState(DEFAULT_WEIGHTS);
 
-  // Audit Log UI State
+
   const [auditLogWidth, setAuditLogWidth] = useState(320);
   const [isAuditLogOpen, setIsAuditLogOpen] = useState(true);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Settings Saving State
+
+
   const [isSavingSettings, setIsSavingSettings] = useState(false);
-  
-  // Ref to track the current active run ID. This prevents race conditions where an old process
-  // tries to update state after a "New Case" reset.
+
+
+
   const activeRunIdRef = useRef<string | null>(null);
 
-  // Sync Pending State when entering Settings tab
+
   useEffect(() => {
     if (activeTab === 'settings') {
       setPendingMode(selectedMode);
@@ -107,18 +107,18 @@ const App: React.FC = () => {
     }
   }, [activeTab, selectedMode, scoringWeights]);
 
-  // Filter history based on search & filters (Applied to current mode's database)
+
   const currentModeHistory = history[selectedMode];
   const filteredHistory = currentModeHistory.filter(c => {
-    // 1. Text Search
-    const matchesText = 
-      c.caseId.toLowerCase().includes(searchQuery.toLowerCase()) || 
+
+    const matchesText =
+      c.caseId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.fileHash.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // 2. Risk Filter
+
     let matchesRisk = true;
     if (filterRisk !== 'ALL') {
-        // Calculate an overall risk if not explicitly set in finalVerdict
+
         let calculatedRisk = 'LOW';
         if (c.finalScore !== null) {
             if (c.finalScore < 40) calculatedRisk = 'CRITICAL';
@@ -128,13 +128,13 @@ const App: React.FC = () => {
         matchesRisk = calculatedRisk === filterRisk;
     }
 
-    // 3. Camera Filter
+
     let matchesCamera = true;
     if (filterCamera) {
         matchesCamera = c.metadata?.cameraModel?.toLowerCase().includes(filterCamera.toLowerCase()) || false;
     }
 
-    // 4. Date Filter
+
     let matchesDate = true;
     if (dateRange.start) {
         matchesDate = matchesDate && new Date(c.acquisitionTime) >= new Date(dateRange.start);
@@ -146,10 +146,10 @@ const App: React.FC = () => {
     return matchesText && matchesRisk && matchesCamera && matchesDate;
   });
 
-  // Helper to add logs
+
   const addLog = (action: string, details: string, status: AuditLogEntry['status'] = 'info') => {
-    // We allow logs even if not strictly processing to capture system events, 
-    // but in a real run, we'd gate this. For now, it's harmless.
+
+
     const newLog: AuditLogEntry = {
       id: Math.random().toString(36).substr(2, 9),
       timestamp: new Date().toISOString().split('T')[1].split('.')[0],
@@ -163,41 +163,41 @@ const App: React.FC = () => {
     }));
   };
 
-  // Load a case from history
+
   const loadCase = (c: ForensicCase) => {
     if (isProcessing) return;
     setCaseData(c);
     setActiveTab('home');
   };
 
-  // --- NEW CASE HANDLER ---
+
   const handleNewCase = () => {
     if (isProcessing) {
         const confirmNew = window.confirm("Investigation in progress. Starting a new case will discard all current data.\n\nDo you want to continue?");
         if (confirmNew) {
-            // Kill the current process
+
             activeRunIdRef.current = null;
             setIsProcessing(false);
-            
-            // Reset state to fresh
+
+
             setCaseData({...initialCaseState, mode: selectedMode});
             setActiveTab('home');
         }
     } else {
-        // Just reset if not processing
+
         setCaseData({...initialCaseState, mode: selectedMode});
         setActiveTab('home');
     }
   };
 
-  // --- SETTINGS SAVE HANDLER ---
+
   const handleSaveSettings = () => {
       const modeChanged = pendingMode !== selectedMode;
       const weightsChanged = JSON.stringify(pendingWeights) !== JSON.stringify(scoringWeights);
 
       if (!modeChanged && !weightsChanged) return;
 
-      // Logic to switch mode (originally in changeMode)
+
       if (modeChanged) {
         const formattedMode = pendingMode.replace('_', ' ').toUpperCase();
         const hasActiveData = caseData.caseId !== '' || isProcessing;
@@ -211,22 +211,22 @@ const App: React.FC = () => {
       }
 
       setIsSavingSettings(true);
-      
-      // Simulate persistence delay
+
+
       setTimeout(() => {
           if (modeChanged) {
-               // If a case is actively processing, stop it
+
                if (isProcessing) {
                   activeRunIdRef.current = null;
                   setIsProcessing(false);
                }
-               
+
                setSelectedMode(pendingMode);
-               
-               // Reset the active case view to the new mode (Clean Slate)
+
+
                setCaseData({
-                   ...initialCaseState, 
-                   mode: pendingMode 
+                   ...initialCaseState,
+                   mode: pendingMode
                });
           }
 
@@ -238,7 +238,7 @@ const App: React.FC = () => {
       }, 800);
   };
 
-  // --- DRAG AND DROP HANDLERS ---
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     if (!isProcessing) setIsDragging(true);
@@ -252,7 +252,7 @@ const App: React.FC = () => {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     if (isProcessing) return;
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
@@ -275,25 +275,25 @@ const App: React.FC = () => {
     fileInputRef.current?.click();
   };
 
-  // --- CORE ORCHESTRATION ---
+
   const startInvestigation = async (file: File) => {
     if (isProcessing) return;
-    
-    // Generate a unique ID for this run
+
+
     const runId = Math.random().toString(36).substr(2, 9);
     activeRunIdRef.current = runId;
-    
+
     setIsProcessing(true);
-    
-    // Reset state with selected mode
+
+
     const newId = `CASE-${Math.floor(Math.random() * 100000)}`;
     const initialState = { ...initialCaseState, caseId: newId, mode: selectedMode };
     setCaseData(initialState);
-    
-    // Use a local mutable reference to track state during the async loop
+
+
     let currentCaseState = { ...initialState };
 
-    // Function to update both local and React state safely
+
     const updateState = (updates: Partial<ForensicCase>) => {
       if (activeRunIdRef.current !== runId) return;
       currentCaseState = { ...currentCaseState, ...updates };
@@ -331,37 +331,37 @@ const App: React.FC = () => {
         currentCaseState = { ...currentCaseState, analysisTrace: newTrace };
         setCaseData(prev => ({ ...prev, analysisTrace: newTrace }));
     };
-    
-    // Step 1: Initialization
+
+
     if (activeRunIdRef.current !== runId) return;
     addLog('INITIALIZATION', `Created Case ID: ${newId} (Mode: ${selectedMode.toUpperCase()})`, 'info');
     addTraceStep('PLAN', 'Investigation Initialized', `Mode: ${selectedMode}. File received: ${file.name}`);
     addLog('UPLOAD', `Received file: ${file.name} (${(file.size/1024).toFixed(1)} KB)`, 'info');
-    
+
     await delay(300);
     if (activeRunIdRef.current !== runId) return;
-    
+
     const hash = await generateHash(file);
     const time = new Date().toISOString();
     updateState({ fileHash: hash, acquisitionTime: time });
     addLog('CHAIN OF CUSTODY', `Generated SHA-256: ${hash.substring(0, 16)}...`, 'success');
-    
-    // Step 2: Metadata
+
+
     if (activeRunIdRef.current !== runId) return;
     addLog('METADATA EXTRACTION', 'Parsing EXIF and GPS data...', 'info');
-    const meta = await extractMetadata(file); 
+    const meta = await extractMetadata(file);
     updateState({ metadata: meta });
     addTraceStep('FINDING', 'Metadata Extracted', `Camera: ${meta.cameraModel || 'N/A'}, Software: ${meta.software || 'N/A'}`);
     addLog('METADATA FOUND', `Device: ${meta.cameraModel}, Soft: ${meta.software}`, meta.software?.toLowerCase().includes('adobe') ? 'warning' : 'success');
 
-    // Step 3: Global Analysis (Heavy Lifting)
+
     if (activeRunIdRef.current !== runId) return;
     addLog('AGENT EXECUTION', 'Dispatching image to Gemini Vision & Signal Processors...', 'info');
     updateState({ currentStep: 'Processing Visual & Signal Data...' });
-    
+
     let analysisContext: GlobalAnalysisContext;
     try {
-       // Pass selectedMode to the global analysis
+
        analysisContext = await startGlobalAnalysis(file, selectedMode);
     } catch (e) {
        console.error(e);
@@ -369,12 +369,12 @@ const App: React.FC = () => {
        setIsProcessing(false);
        return;
     }
-    
+
     if (activeRunIdRef.current !== runId) return;
 
     addLog('DATA ACQUIRED', 'Raw analysis data received. Beginning Agent Planner loop...', 'success');
 
-    // Step 4: Dynamic Execution Loop
+
     const nodeRunners: Record<string, (ctx: GlobalAnalysisContext) => Promise<Partial<NodeResult<any>>>> = {
       deepfake: runDeepfakeNode,
       dct: runDCTNode,
@@ -388,17 +388,17 @@ const App: React.FC = () => {
     };
 
     const completedNodeKeys = new Set<string>();
-    const maxIterations = 9; 
+    const maxIterations = 9;
     let iterations = 0;
 
     while (iterations < maxIterations) {
        if (activeRunIdRef.current !== runId) return;
 
        const availableKeys = Object.keys(currentCaseState.nodes).filter(k => !completedNodeKeys.has(k));
-       
+
        if (availableKeys.length === 0) break;
 
-       // Construct summary for the Planner Agent
+
        const completedSummary = Array.from(completedNodeKeys).map(k => ({
          id: k,
          name: currentCaseState.nodes[k as keyof typeof currentCaseState.nodes].name,
@@ -406,17 +406,17 @@ const App: React.FC = () => {
          findings: currentCaseState.nodes[k as keyof typeof currentCaseState.nodes].inference
        }));
 
-       // Ask Planner what to do next
+
        updateState({ currentStep: 'Agent Deciding Next Step...' });
-       
+
        let plan;
        try {
-         // Pass selectedMode to the Planner
+
          plan = await getNextInvestigationStep(meta, completedSummary, availableKeys, selectedMode);
        } catch (err) {
          plan = { nextNode: availableKeys[0] || 'FINISH', reasoning: "Planner error, proceeding sequentially." };
        }
-       
+
        if (activeRunIdRef.current !== runId) return;
 
        if (plan.nextNode === 'FINISH') {
@@ -435,61 +435,61 @@ const App: React.FC = () => {
          break;
        }
 
-       // Execute the chosen node
+
        const nodeKey = plan.nextNode;
        const nodeName = currentCaseState.nodes[nodeKey as keyof typeof currentCaseState.nodes].name;
-       
+
        addTraceStep('PLAN', `Supervisor Decision: Run ${nodeName}`, `Reason: ${plan.reasoning}`);
-       addLog('PLANNER', `Next: ${nodeName} // ${plan.reasoning}`, 'info');
-       
+       addLog('PLANNER', `Next: ${nodeName}
+
        updateNodeState(nodeKey as any, { status: 'processing' });
        updateState({ currentStep: `Running ${nodeName}...` });
-       
+
        const result = await nodeRunners[nodeKey](analysisContext);
-       
+
        if (activeRunIdRef.current !== runId) return;
 
        updateNodeState(nodeKey as any, { ...result, status: 'completed' });
-       
+
        const isHighRisk = result.riskLevel === 'HIGH' || result.riskLevel === 'CRITICAL';
        addTraceStep('FINDING', `${nodeName} Results`, `Risk: ${result.riskLevel}. Inference: ${result.inference}`, result.riskLevel);
        addLog('NODE FINISHED', `Risk Level: ${result.riskLevel}`, isHighRisk ? 'warning' : 'success');
-       
+
        completedNodeKeys.add(nodeKey);
        iterations++;
-       await delay(800); // Pacing for UX
+       await delay(800);
     }
 
-    // Step 5: Scoring
+
     if (activeRunIdRef.current !== runId) return;
     updateState({ currentStep: 'Calculating Weighted Confidence Scores...' });
-    
-    // Calculate score based only on COMPLETED nodes using configured weights (Active weights)
+
+
     let totalScore = 0;
     let totalWeight = 0;
 
     (Object.keys(currentCaseState.nodes) as Array<keyof typeof currentCaseState.nodes>).forEach(key => {
         if (completedNodeKeys.has(key)) {
             const n = currentCaseState.nodes[key];
-            // Use current configured weight or fallback
+
             const weight = scoringWeights[key as keyof typeof scoringWeights] || 0.05;
             totalScore += (n.score || 0) * weight;
             totalWeight += weight;
         }
     });
 
-    // Normalize if we skipped some nodes
+
     const finalScore = totalWeight > 0 ? (totalScore / totalWeight) : 0;
-    
+
     addLog('SCORING', `Final Authenticity Score Calculated: ${finalScore.toFixed(2)}`, 'info');
 
-    // Step 6: Synthesis (Gemini)
+
     if (activeRunIdRef.current !== runId) return;
     updateState({ currentStep: 'Synthesizing Final Report (AI Agent)...', finalScore });
     addLog('AGENT REASONING', 'Contacting LLM for executive summary generation...', 'info');
-    
+
     const report = await generateForensicReport(currentCaseState);
-    
+
     if (activeRunIdRef.current !== runId) return;
 
     const finalCaseState = {
@@ -501,19 +501,19 @@ const App: React.FC = () => {
     };
 
     setCaseData(finalCaseState);
-    
-    // Save to the specific mode's history
+
+
     setHistory(prev => ({
         ...prev,
         [selectedMode]: [finalCaseState, ...prev[selectedMode]]
     }));
-    
+
     addLog('COMPLETE', 'Case closed. Report generated.', 'success');
     setIsProcessing(false);
   };
 
-  // --- VIEWS ---
-  
+
+
   const renderHome = () => (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
         {/* Header / Top Bar */}
@@ -535,13 +535,13 @@ const App: React.FC = () => {
                     </div>
                 </div>
             )}
-            
-            <button 
+
+            <button
                 onClick={triggerFileUpload}
                 disabled={isProcessing}
                 className={`flex items-center gap-2 px-6 py-3 rounded font-bold transition-all shadow-lg whitespace-nowrap ${
-                    isProcessing 
-                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
+                    isProcessing
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                     : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-500/20'
                 }`}
             >
@@ -562,14 +562,14 @@ const App: React.FC = () => {
 
         {/* Start State / Drop Zone */}
         {!caseData.caseId && !isProcessing && (
-             <div 
+             <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={triggerFileUpload}
                 className={`h-[40vh] flex flex-col items-center justify-center border-2 border-dashed rounded-xl transition-all duration-300 cursor-pointer group
-                    ${isDragging 
-                        ? 'border-cyan-400 bg-cyan-950/10 scale-[1.01] shadow-[0_0_30px_rgba(6,182,212,0.15)]' 
+                    ${isDragging
+                        ? 'border-cyan-400 bg-cyan-950/10 scale-[1.01] shadow-[0_0_30px_rgba(6,182,212,0.15)]'
                         : 'border-slate-800 bg-slate-900/20 hover:border-slate-600 hover:bg-slate-900/40'
                     }
                 `}
@@ -593,7 +593,7 @@ const App: React.FC = () => {
         {/* Dashboard Grid */}
         {caseData.caseId && (
             <main className="space-y-8 animate-in fade-in duration-500">
-                
+
                 {/* Section 1: Metadata & Map */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-lg p-6">
@@ -645,9 +645,9 @@ const App: React.FC = () => {
                         {/* Interactive Map Layer */}
                         <div className="flex-1 w-full h-full absolute inset-0 z-10">
                             {caseData.metadata?.gps ? (
-                                <MapPreview 
-                                    lat={caseData.metadata.gps.lat} 
-                                    lng={caseData.metadata.gps.lng} 
+                                <MapPreview
+                                    lat={caseData.metadata.gps.lat}
+                                    lng={caseData.metadata.gps.lng}
                                     label={caseData.metadata.gps.locationName}
                                 />
                             ) : (
@@ -703,15 +703,15 @@ const App: React.FC = () => {
             <div className="flex gap-2">
                 <div className="flex-1 flex items-center gap-3 bg-slate-950 border border-slate-800 rounded px-3 py-2 focus-within:border-cyan-500/50 transition-colors">
                     <Search className="w-4 h-4 text-slate-500" />
-                    <input 
-                        type="text" 
-                        placeholder="Search Archives by Case ID or File Hash..." 
+                    <input
+                        type="text"
+                        placeholder="Search Archives by Case ID or File Hash..."
                         className="bg-transparent border-none outline-none text-sm text-slate-200 w-full placeholder:text-slate-600 font-mono"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <button 
+                <button
                     onClick={() => setShowFilters(!showFilters)}
                     className={`px-3 py-2 rounded border transition-colors flex items-center gap-2 ${showFilters ? 'bg-cyan-900/20 border-cyan-500/50 text-cyan-400' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'}`}
                 >
@@ -724,8 +724,8 @@ const App: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-950 rounded border border-slate-800 animate-in slide-in-from-top-2">
                     <div>
                         <label className="block text-[10px] text-slate-500 uppercase mb-1">Risk Level</label>
-                        <select 
-                            value={filterRisk} 
+                        <select
+                            value={filterRisk}
                             onChange={(e) => setFilterRisk(e.target.value)}
                             className="w-full bg-slate-900 border border-slate-800 text-slate-300 text-xs p-2 rounded focus:border-cyan-500 outline-none"
                         >
@@ -738,9 +738,9 @@ const App: React.FC = () => {
                     </div>
                     <div>
                         <label className="block text-[10px] text-slate-500 uppercase mb-1">Camera Model</label>
-                        <input 
-                            type="text" 
-                            placeholder="e.g. Canon, iPhone" 
+                        <input
+                            type="text"
+                            placeholder="e.g. Canon, iPhone"
                             value={filterCamera}
                             onChange={(e) => setFilterCamera(e.target.value)}
                             className="w-full bg-slate-900 border border-slate-800 text-slate-300 text-xs p-2 rounded focus:border-cyan-500 outline-none"
@@ -749,14 +749,14 @@ const App: React.FC = () => {
                     <div>
                          <label className="block text-[10px] text-slate-500 uppercase mb-1">Date Range</label>
                          <div className="flex gap-2">
-                             <input 
-                                type="date" 
+                             <input
+                                type="date"
                                 value={dateRange.start}
                                 onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
                                 className="w-1/2 bg-slate-900 border border-slate-800 text-slate-300 text-xs p-2 rounded focus:border-cyan-500 outline-none"
                              />
-                             <input 
-                                type="date" 
+                             <input
+                                type="date"
                                 value={dateRange.end}
                                 onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
                                 className="w-1/2 bg-slate-900 border border-slate-800 text-slate-300 text-xs p-2 rounded focus:border-cyan-500 outline-none"
@@ -794,7 +794,7 @@ const App: React.FC = () => {
                                     </span>
                                 </td>
                                 <td className="p-3 text-right">
-                                    <button 
+                                    <button
                                         onClick={() => loadCase(c)}
                                         className="text-cyan-500 hover:text-cyan-300 underline opacity-0 group-hover:opacity-100 transition-opacity"
                                     >
@@ -816,7 +816,7 @@ const App: React.FC = () => {
   );
 
   const renderSettings = () => {
-      // Calculate change status
+
       const hasChanges = pendingMode !== selectedMode || JSON.stringify(pendingWeights) !== JSON.stringify(scoringWeights);
 
       return (
@@ -827,7 +827,7 @@ const App: React.FC = () => {
           </h1>
 
           <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-8">
-              
+
               {/* Forensics Mode Selector */}
               <div>
                   <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider border-b border-slate-800 pb-2">Forensic Investigation Mode</h3>
@@ -835,8 +835,8 @@ const App: React.FC = () => {
                       <button
                         onClick={() => setPendingMode('general')}
                         className={`flex flex-col items-center p-4 rounded-lg border transition-all ${
-                          pendingMode === 'general' 
-                            ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-lg' 
+                          pendingMode === 'general'
+                            ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-lg'
                             : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'
                         }`}
                       >
@@ -850,8 +850,8 @@ const App: React.FC = () => {
                       <button
                         onClick={() => setPendingMode('insurance')}
                         className={`flex flex-col items-center p-4 rounded-lg border transition-all ${
-                          pendingMode === 'insurance' 
-                            ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-lg' 
+                          pendingMode === 'insurance'
+                            ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-lg'
                             : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'
                         }`}
                       >
@@ -865,8 +865,8 @@ const App: React.FC = () => {
                       <button
                         onClick={() => setPendingMode('customer_care')}
                         className={`flex flex-col items-center p-4 rounded-lg border transition-all ${
-                          pendingMode === 'customer_care' 
-                            ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-lg' 
+                          pendingMode === 'customer_care'
+                            ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-lg'
                             : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'
                         }`}
                       >
@@ -884,14 +884,14 @@ const App: React.FC = () => {
               <div>
                   <div className="flex justify-between items-end border-b border-slate-800 pb-2 mb-4">
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider">Scoring Model Configuration</h3>
-                      <button 
+                      <button
                          onClick={() => setPendingWeights(DEFAULT_WEIGHTS)}
                          className="text-[10px] flex items-center gap-1 text-cyan-400 hover:text-cyan-300"
                       >
                           <RotateCcw className="w-3 h-3" /> Reset Defaults
                       </button>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                       {Object.entries(pendingWeights).map(([key, weight]) => (
                           <div key={key}>
@@ -902,10 +902,10 @@ const App: React.FC = () => {
                                   </label>
                                   <span className="text-xs font-bold text-cyan-500 font-mono">{(weight * 100).toFixed(0)}%</span>
                               </div>
-                              <input 
-                                  type="range" 
-                                  min="0" 
-                                  max="0.5" 
+                              <input
+                                  type="range"
+                                  min="0"
+                                  max="0.5"
                                   step="0.05"
                                   value={weight}
                                   onChange={(e) => setPendingWeights(prev => ({ ...prev, [key]: parseFloat(e.target.value) }))}
@@ -922,12 +922,12 @@ const App: React.FC = () => {
                   <div className="text-xs text-slate-500">
                       Changes are applied to the active session immediately. Save to persist configuration.
                   </div>
-                  <button 
+                  <button
                     onClick={handleSaveSettings}
                     disabled={!hasChanges || isSavingSettings}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded font-bold text-sm transition-all shadow-lg ${
-                        (!hasChanges || isSavingSettings) 
-                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' 
+                        (!hasChanges || isSavingSettings)
+                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
                         : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-500/20 active:scale-95'
                     }`}
                   >
@@ -952,12 +952,12 @@ const App: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-200 font-sans">
       {/* Hidden File Input */}
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleFileSelect} 
-        className="hidden" 
-        accept="image/*" 
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        className="hidden"
+        accept="image/*"
       />
 
       {/* Navigation Sidebar */}
@@ -965,9 +965,9 @@ const App: React.FC = () => {
 
       {/* Right Sidebar - Audit Log (Only on Home) */}
       {activeTab === 'home' && (
-        <AuditLog 
-            logs={caseData.auditLog} 
-            width={auditLogWidth} 
+        <AuditLog
+            logs={caseData.auditLog}
+            width={auditLogWidth}
             isOpen={isAuditLogOpen}
             onToggle={() => setIsAuditLogOpen(!isAuditLogOpen)}
             onResize={setAuditLogWidth}
@@ -975,7 +975,7 @@ const App: React.FC = () => {
       )}
 
       {/* Main Content Area */}
-      <div 
+      <div
         className="flex-1 p-8 transition-all duration-300 ml-64"
         style={{ marginRight: activeTab === 'home' ? (isAuditLogOpen ? auditLogWidth : 48) : 0 }}
       >

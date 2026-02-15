@@ -23,13 +23,13 @@ const AuditLog: React.FC<AuditLogProps> = ({ logs, width, isOpen, onToggle, onRe
   const startResizing = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
-    
+
     const startX = e.clientX;
     const startWidth = width;
 
     const doDrag = (moveEvent: MouseEvent) => {
       const newWidth = startWidth + (startX - moveEvent.clientX);
-      // Min width 240px, Max width 600px
+
       if (newWidth >= 240 && newWidth <= 600) {
         onResize(newWidth);
       }
@@ -59,7 +59,7 @@ const AuditLog: React.FC<AuditLogProps> = ({ logs, width, isOpen, onToggle, onRe
   if (!isOpen) {
     return (
         <div className="fixed right-0 top-0 bottom-0 z-10 bg-slate-950 border-l border-slate-800 w-12 flex flex-col items-center py-4 transition-all duration-300 shadow-xl">
-            <button 
+            <button
                 onClick={onToggle}
                 className="p-2 bg-slate-900 rounded-lg text-cyan-400 hover:text-cyan-300 hover:bg-slate-800 mb-4 transition-colors"
                 title="Expand Audit Log"
@@ -77,12 +77,12 @@ const AuditLog: React.FC<AuditLogProps> = ({ logs, width, isOpen, onToggle, onRe
   }
 
   return (
-    <div 
+    <div
         className="fixed right-0 top-0 bottom-0 z-10 bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col"
         style={{ width: width }}
     >
       {/* Resize Handle */}
-      <div 
+      <div
         onMouseDown={startResizing}
         className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-cyan-500/50 z-20 group flex items-center justify-center -translate-x-1/2"
       >
@@ -94,7 +94,7 @@ const AuditLog: React.FC<AuditLogProps> = ({ logs, width, isOpen, onToggle, onRe
             <Activity className="w-5 h-5 text-cyan-500 animate-pulse-slow" />
             <h2 className="text-sm font-bold tracking-wider text-slate-100 uppercase truncate">Agent Audit Log</h2>
         </div>
-        <button 
+        <button
             onClick={onToggle}
             className="text-slate-500 hover:text-slate-300 transition-colors p-1 hover:bg-slate-800 rounded"
             title="Minimize"
@@ -102,7 +102,7 @@ const AuditLog: React.FC<AuditLogProps> = ({ logs, width, isOpen, onToggle, onRe
             <ChevronRight className="w-4 h-4" />
         </button>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto p-4 space-y-4 font-mono text-xs">
         {logs.length === 0 && (
           <div className="text-slate-500 italic text-center mt-10">Waiting for case initialization...</div>

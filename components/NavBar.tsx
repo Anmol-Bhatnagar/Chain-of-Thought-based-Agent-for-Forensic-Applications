@@ -45,7 +45,7 @@ const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, onNewCase, cur
             </span>
         </div>
       </div>
-      
+
       <div className="px-3 pt-6 pb-2">
         <button
             onClick={onNewCase}

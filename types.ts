@@ -42,11 +42,11 @@ export interface NodeResult<T> {
   status: AnalysisStatus;
   data: T | null;
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  score: number; // 0 to 100, where 100 is authentic, 0 is fake
-  inference: string; // The "thought" from that specific node
+  score: number;
+  inference: string;
 }
 
-// Specific Node Data Types
+
 export interface DeepfakeData {
   probabilityReal: number;
   probabilityFake: number;
@@ -56,7 +56,7 @@ export interface DeepfakeData {
 
 export interface DCTData {
   doubleCompressionDetected: boolean;
-  quantizationConsistency: number; // 0-100
+  quantizationConsistency: number;
   histogramVariance: number;
 }
 
@@ -67,7 +67,7 @@ export interface PRNUData {
 }
 
 export interface ELAData {
-  errorLevelVariance: number; // Percentage
+  errorLevelVariance: number;
   highlightedRegionsCount: number;
 }
 
@@ -83,8 +83,8 @@ export interface CloneData {
 }
 
 export interface NoiseData {
-  smoothnessScore: number; // High means suspiciously smooth
-  grainConsistency: number; // 0-100
+  smoothnessScore: number;
+  grainConsistency: number;
 }
 
 export interface StringsData {
@@ -97,7 +97,7 @@ export interface RegionQualityData {
   analyzedRegions: Array<{
     name: string;
     issue: 'None' | 'Pixelation' | 'Unnatural Smoothness' | 'Blurring' | 'Artifacts';
-    riskScore: number; // 0-100
+    riskScore: number;
   }>;
   overallQualityScore: number;
 }
@@ -108,8 +108,8 @@ export interface ForensicCase {
   fileHash: string;
   acquisitionTime: string;
   metadata: Metadata | null;
-  
-  // Analysis Nodes
+
+
   nodes: {
     deepfake: NodeResult<DeepfakeData>;
     dct: NodeResult<DCTData>;
@@ -122,13 +122,13 @@ export interface ForensicCase {
     region_quality: NodeResult<RegionQualityData>;
   };
 
-  // Final Synthesis
-  finalScore: number | null; // Weighted average
+
+  finalScore: number | null;
   finalVerdict: 'Authentic' | 'Suspicious' | 'Manipulated' | 'Inconclusive' | null;
   agentReasoning: string | null;
   executiveSummary: string | null;
-  
+
   auditLog: AuditLogEntry[];
-  analysisTrace: AnalysisStep[]; // Chain of Thought
+  analysisTrace: AnalysisStep[];
   currentStep: string;
 }

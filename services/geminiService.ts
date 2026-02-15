@@ -10,7 +10,7 @@ const getGeminiClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
-// --- MULTIMODAL ANALYSIS ---
+
 export interface GeminiAnalysisResult {
   deepfake: {
     probabilityFake: number;
@@ -57,8 +57,8 @@ export interface GeminiAnalysisResult {
 }
 
 const getAnalysisPrompt = (mode: InvestigationMode, extractedStrings: string[]) => {
-  const stringsContext = extractedStrings.length > 0 
-    ? `Extracted File Strings (Metadata/Hidden Data): ${JSON.stringify(extractedStrings.slice(0, 50))}. Check these for software signatures (e.g., 'Photoshop', 'GIMP') or inconsistencies with the visual content.` 
+  const stringsContext = extractedStrings.length > 0
+    ? `Extracted File Strings (Metadata/Hidden Data): ${JSON.stringify(extractedStrings.slice(0, 50))}. Check these for software signatures (e.g., 'Photoshop', 'GIMP') or inconsistencies with the visual content.`
     : "No readable strings extracted.";
 
   const baseInstructions = `
@@ -109,14 +109,14 @@ const getAnalysisPrompt = (mode: InvestigationMode, extractedStrings: string[]) 
     return `
       You are an Expert Insurance Claims Forensic Analyst.
       Your goal: Verify vehicle/property damage claims and detect fraud (AI generation or photo manipulation).
-      
+
       Focus Areas:
       1. **Region Integrity**: Check the License Plate (for blurring/text generation artifacts), the Damage Area (for unnatural smoothness/inpainting), and background reflections.
       2. **Vehicle/Property Physics**: Does the dent/damage interact with light correctly? AI often fails at complex reflections on metal.
       3. **Inpainting**: Look for "smudged" license plates or artificially inserted damage.
       4. **Recycled Photos**: Look for screen moire patterns indicating a photo of a screen.
       5. **String Analysis**: ${stringsContext}
-      
+
       ${baseInstructions}
     `;
   }
@@ -125,19 +125,19 @@ const getAnalysisPrompt = (mode: InvestigationMode, extractedStrings: string[]) 
     return `
       You are a Fraud Prevention Specialist for a Logistics/Food Delivery platform (e.g., Swiggy, Zomato, Amazon).
       Your goal: Verify customer complaints (e.g., "foreign object in food", "empty box", "wrong item").
-      
+
       Focus Areas:
       1. **Region Integrity**: Check the specific foreign object (insect, stone) for pixelation (cut-paste) or blurring edges. Check Shipping Labels for text editing.
       2. **Object Insertion**: Is the foreign object actually in the scene, or pasted in (Clone/Deepfake)? Check contact shadows.
       3. **Container State**: Is the package actually empty, or is it a forced perspective?
       4. **Freshness/State**: Does the food condition match the delivery time?
       5. **String Analysis**: ${stringsContext}
-      
+
       ${baseInstructions}
     `;
   }
 
-  // General Purpose
+
   return `
     You are Kshura-Zero, an elite AI Forensic Image Analyst.
     Your objective is to detect ANY sign of digital manipulation, AI generation (GAN/Diffusion), or editing with extreme scrutiny.
@@ -161,7 +161,7 @@ export const analyzeImageWithGemini = async (base64Image: string, mimeType: stri
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview', 
+      model: 'gemini-3-flash-preview',
       contents: {
         parts: [
           { inlineData: { mimeType, data: base64Image } },
@@ -183,7 +183,7 @@ export const analyzeImageWithGemini = async (base64Image: string, mimeType: stri
   }
 };
 
-// --- DYNAMIC PLANNING AGENT ---
+
 export const getNextInvestigationStep = async (
   metadata: any,
   completedNodes: Array<{id: string, name: string, risk: string, findings: string}>,
@@ -204,7 +204,7 @@ export const getNextInvestigationStep = async (
       2. **Deepfake/Inpainting**: Essential to confirm if damage is real.
       3. **Lighting**: Critical for verifying dents/scratches on reflective surfaces (cars).
       4. **Metadata/GPS**: Critical to ensure the photo wasn't taken at a different location/time than the claim.
-      
+
       If 'lighting' or 'deepfake' shows high risk, prioritize 'dct' or 'ela' to find the edit mask.
     `;
   } else if (mode === 'customer_care') {
@@ -214,7 +214,7 @@ export const getNextInvestigationStep = async (
       1. **Region Quality**: Check labels and foreign objects for pixelation/blur.
       2. **Clone/Copy-Move**: High priority to detect pasted insects/objects in food.
       3. **Deepfake**: To detect AI-generated "proof" photos.
-      
+
       If the user claims "foreign object", prioritize 'region_quality' and 'clone'.
     `;
   } else {
@@ -227,16 +227,16 @@ export const getNextInvestigationStep = async (
   const prompt = `
     You are an autonomous Supervisor Agent.
     ${personaInstructions}
-    
+
     Current Case State:
     - Metadata: ${JSON.stringify(metadata)}
     - Completed Tests: ${JSON.stringify(completedNodes)}
     - Available Tools: ${JSON.stringify(availableNodeKeys)}
-    
+
     DECISION PROTOCOL:
     1. **Efficiency**: If we have CRITICAL evidence (Risk: CRITICAL), STOP (return 'FINISH').
     2. **Context**: Use the tool best suited for the specific Industry Role defined above.
-    
+
     DECISION:
     Return JSON: { "nextNode": "key" | "FINISH", "reasoning": "Why?" }
   `;
@@ -252,15 +252,15 @@ export const getNextInvestigationStep = async (
 
     const text = response.text;
     if (!text) return { nextNode: availableNodeKeys[0] || 'FINISH', reasoning: "Fallback: Proceeding sequentially." };
-    
+
     const result = JSON.parse(text);
-    
+
     if (result.nextNode !== 'FINISH' && !availableNodeKeys.includes(result.nextNode)) {
-        return availableNodeKeys.length > 0 
+        return availableNodeKeys.length > 0
            ? { nextNode: availableNodeKeys[0], reasoning: "Invalid selection, defaulting to next tool." }
            : { nextNode: 'FINISH', reasoning: "No valid nodes remaining." };
     }
-    
+
     return result;
 
   } catch (error) {
@@ -269,7 +269,7 @@ export const getNextInvestigationStep = async (
   }
 };
 
-// --- REPORT GENERATION ---
+
 export const generateForensicReport = async (caseData: ForensicCase): Promise<{ summary: string; reasoning: string }> => {
   const ai = getGeminiClient();
   if (!ai) {
@@ -298,19 +298,19 @@ export const generateForensicReport = async (caseData: ForensicCase): Promise<{ 
 
   const prompt = `
     Act as a ${persona}. Generate a Final Decision Report.
-    
+
     Case ID: ${caseData.caseId}
     Mode: ${caseData.mode}
     Score: ${caseData.finalScore?.toFixed(1)}/100 (100 = Authentic)
-    
+
     Technical Findings:
     ${nodeContext}
-    
+
     Instructions:
     1. **Context**: ${contextInstruction}
     2. **Synthesize**: Explain how the technical findings support your verdict.
     3. **Verdict**: Clearly state if the evidence supports the user's claim or indicates fraud.
-    
+
     Output JSON: { "reasoning": "...", "summary": "..." }
   `;
 
@@ -325,7 +325,7 @@ export const generateForensicReport = async (caseData: ForensicCase): Promise<{ 
 
     const text = response.text;
     if (!text) throw new Error("No response from Gemini");
-    
+
     return JSON.parse(text);
 
   } catch (error) {

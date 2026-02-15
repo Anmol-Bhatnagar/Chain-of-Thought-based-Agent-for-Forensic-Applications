@@ -13,8 +13,8 @@ const NodeCard: React.FC<NodeCardProps> = ({ node, icon }) => {
   if (status === 'idle') return null;
 
   const isProcessing = status === 'processing';
-  
-  // Dynamic styling based on risk
+
+
   let containerStyle = '';
   let textColor = '';
   let riskIcon = null;
@@ -46,7 +46,7 @@ const NodeCard: React.FC<NodeCardProps> = ({ node, icon }) => {
 
   return (
     <div className={`relative overflow-hidden rounded-lg border backdrop-blur-sm p-5 transition-all duration-500 ${containerStyle}`}>
-      
+
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center gap-3">
@@ -70,7 +70,7 @@ const NodeCard: React.FC<NodeCardProps> = ({ node, icon }) => {
             )}
           </div>
         </div>
-        
+
         {!isProcessing && (
           <div className="text-right">
             <div className={`text-2xl font-bold font-mono ${score < 50 ? 'text-rose-500' : 'text-slate-100'}`}>
@@ -86,8 +86,8 @@ const NodeCard: React.FC<NodeCardProps> = ({ node, icon }) => {
         {/* Inference Text */}
         {!isProcessing && (
           <div className={`p-3 rounded border text-sm font-mono leading-relaxed ${
-              riskLevel === 'CRITICAL' || riskLevel === 'HIGH' 
-              ? 'bg-rose-950/30 border-rose-900/50 text-rose-100' 
+              riskLevel === 'CRITICAL' || riskLevel === 'HIGH'
+              ? 'bg-rose-950/30 border-rose-900/50 text-rose-100'
               : 'bg-slate-950/50 border-slate-800 text-slate-300'
           }`}>
             <span className="opacity-50 select-none mr-2">{">"}</span>
@@ -132,7 +132,7 @@ const NodeCard: React.FC<NodeCardProps> = ({ node, icon }) => {
                   </div>
                </div>
              )}
-             
+
              {/* Example: Clone Detection */}
              {name.includes('Clone') && (
                 <div className="flex items-center justify-between bg-slate-800/50 p-2 rounded border border-slate-700/50">

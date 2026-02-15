@@ -18,7 +18,7 @@ import {
 } from './services/forensicSimulator';
 import { generateForensicReport, getNextInvestigationStep } from './services/geminiService';
 
-// Default Weights Configuration
+
 const DEFAULT_WEIGHTS = {
   deepfake: 0.2,
   region_quality: 0.2,
@@ -31,7 +31,7 @@ const DEFAULT_WEIGHTS = {
   strings: 0.05,
 };
 
-// Initial State Template
+
 const initialCaseState: ForensicCase = {
   caseId: '',
   mode: 'general',
@@ -62,27 +62,25 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [caseData, setCaseData] = useState<ForensicCase>(initialCaseState);
   
-  // Separate history databases for each mode
+
   const [history, setHistory] = useState<Record<InvestigationMode, ForensicCase[]>>({
     general: [],
     insurance: [],
     customer_care: []
   });
   
-  // Search & Filter State
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filterRisk, setFilterRisk] = useState<string>('ALL');
   const [filterCamera, setFilterCamera] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
-  // Mode Selection State (Active)
+
   const [selectedMode, setSelectedMode] = useState<InvestigationMode>('general');
 
-  // Scoring Weights State (Active)
   const [scoringWeights, setScoringWeights] = useState(DEFAULT_WEIGHTS);
 
-  // PENDING Settings State (For UI)
   const [pendingMode, setPendingMode] = useState<InvestigationMode>('general');
   const [pendingWeights, setPendingWeights] = useState(DEFAULT_WEIGHTS);
 
@@ -390,7 +388,7 @@ const App: React.FC = () => {
     };
 
     const completedNodeKeys = new Set<string>();
-    const maxIterations = 9; // Safety break
+    const maxIterations = 9; 
     let iterations = 0;
 
     while (iterations < maxIterations) {

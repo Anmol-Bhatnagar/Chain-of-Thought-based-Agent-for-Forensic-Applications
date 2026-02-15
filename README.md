@@ -9,9 +9,9 @@ Kshura Forensics employs a Supervisor Agent that dynamically orchestrates forens
 ## Features
 
 ### Autonomous Analysis
-- **AI-Driven Decision Making**: Supervisor Agent dynamically selects which forensic tests to run based on intermediate findings
-- **Mode-Specific Strategies**: Tailored investigation priorities for general, insurance, and customer care contexts
-- **Efficient Processing**: Early termination when critical evidence is detected
+- **AI-Driven Decision Making**: Supervisor Agent dynamically selects which forensic tests to run based on intermediate findings.
+- **Mode-Specific Strategies**: Tailored investigation priorities for general, insurance, and customer care contexts.
+- **Efficient Processing**: Early termination when critical evidence is detected.
 
 ### Forensic Analysis Nodes
 1. **Deepfake Detection**: AI generation and synthetic content identification

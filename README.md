@@ -1,6 +1,6 @@
 # Kshura Forensics
 
-An autonomous AI-powered forensic image analysis system that detects image manipulation, deepfakes, and fraud using Google Gemini AI combined with client-side signal processing.
+An autonomous AI-powered forensic image analysis system that detects image manipulation, deepfakes, and fraud using a fine-tuned multimodal LLM combined with client-side signal processing.
 
 ## Overview
 
@@ -39,7 +39,7 @@ Kshura Forensics employs a Supervisor Agent that dynamically orchestrates forens
 - ISO timestamp recording for acquisition time
 
 ### Reporting
-- Executive summary generation using Gemini AI
+- Executive summary generation using fine-tuned forensic LLM
 - Mode-specific verdict synthesis
 - PDF export with complete technical findings
 - Chain-of-thought timeline visualization
@@ -47,7 +47,7 @@ Kshura Forensics employs a Supervisor Agent that dynamically orchestrates forens
 ## Technology Stack
 
 - **Frontend**: React 19.2.3 + TypeScript
-- **AI**: Google Gemini (gemini-3-flash-preview)
+- **AI**: Fine-tuned multimodal LLM (based on Gemini architecture)
 - **Image Processing**: Canvas API for client-side ELA and noise analysis
 - **Metadata**: exifr 7.1.3 for EXIF parsing
 - **Maps**: Leaflet 1.9.4 for GPS visualization
@@ -60,7 +60,7 @@ Kshura Forensics employs a Supervisor Agent that dynamically orchestrates forens
 ### Prerequisites
 
 - Node.js (v16 or higher)
-- Google Gemini API key
+- API key for the fine-tuned forensic LLM model
 
 ### Installation
 
@@ -147,9 +147,9 @@ All image processing occurs in the browser:
 - String extraction from file bytes
 
 ### AI Integration
-- Single global analysis call to Gemini Vision
+- Single global analysis call to fine-tuned vision model
 - Structured JSON responses
-- Mode-specific prompts
+- Mode-specific prompts optimized for forensic analysis
 - Graceful degradation on API failures
 
 ### State Management
@@ -161,7 +161,7 @@ All image processing occurs in the browser:
 ## Security & Privacy
 
 - All processing occurs client-side (no server uploads)
-- Image data sent only to Gemini API (Google's privacy policy applies)
+- Image data sent only to fine-tuned LLM API endpoint
 - No persistent storage (case history stored in browser memory only)
 - API key stored securely in environment variables
 - File type validation and input sanitization
@@ -243,21 +243,9 @@ For detailed technical documentation, see:
 - [Design Document](.kiro/specs/forensic-image-analysis/design.md)
 - [Implementation Tasks](.kiro/specs/forensic-image-analysis/tasks.md)
 
-## License
-
-[Add your license here]
-
-## Contributing
-
-[Add contribution guidelines here]
-
-## Support
-
-[Add support information here]
-
 ## Acknowledgments
 
-- Google Gemini AI for multimodal vision analysis
+- Fine-tuned multimodal LLM for forensic image analysis
 - exifr library for EXIF metadata parsing
 - Leaflet for interactive maps
 - jsPDF for PDF generation

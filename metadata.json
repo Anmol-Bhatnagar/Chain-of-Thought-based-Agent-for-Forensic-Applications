@@ -1,5 +1,5 @@
 {
-  "name": "Sentinel Forensic Agent",
+  "name": "Kshura Forensic Agent",
   "description": "An autonomous AI agent dashboard for digital image forensics, featuring real-time analysis visualization, chain of custody tracking, and generative reasoning.",
   "requestFramePermissions": []
 }

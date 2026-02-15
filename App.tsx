@@ -8,7 +8,7 @@ import NavBar from './components/NavBar';
 import { 
   Scan, Camera, Fingerprint, Layers, Sun, Copy, Hash, MapPin, 
   UploadCloud, PlayCircle, Terminal, AlertOctagon, FileInput, Search, BrainCircuit,
-  Filter, X, Shield, ShoppingBag, Briefcase, Binary, ScanEye, Database, Settings as SettingsIcon, Bell, CheckCircle2
+  Filter, X, Shield, ShoppingBag, Briefcase, Binary, ScanEye, Database, Settings as SettingsIcon, CheckCircle2, RotateCcw, Sliders, Save
 } from 'lucide-react';
 import { 
   extractMetadata, startGlobalAnalysis, 
@@ -17,6 +17,19 @@ import {
   generateHash, delay, GlobalAnalysisContext 
 } from './services/forensicSimulator';
 import { generateForensicReport, getNextInvestigationStep } from './services/geminiService';
+
+// Default Weights Configuration
+const DEFAULT_WEIGHTS = {
+  deepfake: 0.2,
+  region_quality: 0.2,
+  dct: 0.1,
+  prnu: 0.1,
+  clone: 0.1,
+  ela: 0.1,
+  noise: 0.1,
+  lighting: 0.05,
+  strings: 0.05,
+};
 
 // Initial State Template
 const initialCaseState: ForensicCase = {
@@ -63,13 +76,38 @@ const App: React.FC = () => {
   const [filterCamera, setFilterCamera] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
-  // Mode Selection State (Defaults to general)
+  // Mode Selection State (Active)
   const [selectedMode, setSelectedMode] = useState<InvestigationMode>('general');
+
+  // Scoring Weights State (Active)
+  const [scoringWeights, setScoringWeights] = useState(DEFAULT_WEIGHTS);
+
+  // PENDING Settings State (For UI)
+  const [pendingMode, setPendingMode] = useState<InvestigationMode>('general');
+  const [pendingWeights, setPendingWeights] = useState(DEFAULT_WEIGHTS);
+
+  // Audit Log UI State
+  const [auditLogWidth, setAuditLogWidth] = useState(320);
+  const [isAuditLogOpen, setIsAuditLogOpen] = useState(true);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const caseActiveRef = useRef(false); // To track if current case is active or cancelled
+  
+  // Settings Saving State
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  
+  // Ref to track the current active run ID. This prevents race conditions where an old process
+  // tries to update state after a "New Case" reset.
+  const activeRunIdRef = useRef<string | null>(null);
+
+  // Sync Pending State when entering Settings tab
+  useEffect(() => {
+    if (activeTab === 'settings') {
+      setPendingMode(selectedMode);
+      setPendingWeights(scoringWeights);
+    }
+  }, [activeTab, selectedMode, scoringWeights]);
 
   // Filter history based on search & filters (Applied to current mode's database)
   const currentModeHistory = history[selectedMode];
@@ -112,10 +150,8 @@ const App: React.FC = () => {
 
   // Helper to add logs
   const addLog = (action: string, details: string, status: AuditLogEntry['status'] = 'info') => {
-    // Only add logs if the case is still active in state logic, though for logs we can be a bit more lenient,
-    // but preventing state updates on dead cases is key.
-    if (!caseActiveRef.current && action !== 'INITIALIZATION') return;
-
+    // We allow logs even if not strictly processing to capture system events, 
+    // but in a real run, we'd gate this. For now, it's harmless.
     const newLog: AuditLogEntry = {
       id: Math.random().toString(36).substr(2, 9),
       timestamp: new Date().toISOString().split('T')[1].split('.')[0],
@@ -129,17 +165,6 @@ const App: React.FC = () => {
     }));
   };
 
-  // Helper to update specific node
-  const updateNode = (key: keyof ForensicCase['nodes'], updates: Partial<NodeResult<any>>) => {
-    setCaseData(prev => ({
-      ...prev,
-      nodes: {
-        ...prev.nodes,
-        [key]: { ...prev.nodes[key], ...updates }
-      }
-    }));
-  };
-
   // Load a case from history
   const loadCase = (c: ForensicCase) => {
     if (isProcessing) return;
@@ -150,33 +175,69 @@ const App: React.FC = () => {
   // --- NEW CASE HANDLER ---
   const handleNewCase = () => {
     if (isProcessing) {
-        const confirmNew = window.confirm("A case is currently being processed. Do you want to stop it and start a new one?");
+        const confirmNew = window.confirm("Investigation in progress. Starting a new case will discard all current data.\n\nDo you want to continue?");
         if (confirmNew) {
-            caseActiveRef.current = false; // Cancel running loop
+            // Kill the current process
+            activeRunIdRef.current = null;
             setIsProcessing(false);
-            // Small delay to ensure any pending state updates in the loop are skipped by the guard
-            setTimeout(() => {
-                setCaseData({...initialCaseState, mode: selectedMode});
-                setActiveTab('home');
-            }, 50);
+            
+            // Reset state to fresh
+            setCaseData({...initialCaseState, mode: selectedMode});
+            setActiveTab('home');
         }
     } else {
+        // Just reset if not processing
         setCaseData({...initialCaseState, mode: selectedMode});
         setActiveTab('home');
     }
   };
 
-  // --- SETTINGS HANDLER ---
-  const changeMode = (newMode: InvestigationMode) => {
-      if (newMode === selectedMode) return;
-      const formattedMode = newMode.replace('_', ' ').toUpperCase();
-      if (window.confirm(`You are changing the current mode to : ${formattedMode}`)) {
-          setSelectedMode(newMode);
-          // Update current case mode only if it's not a historical/finished one (which stays as is)
-          if (!caseData.caseId) {
-             setCaseData(prev => ({ ...prev, mode: newMode }));
-          }
+  // --- SETTINGS SAVE HANDLER ---
+  const handleSaveSettings = () => {
+      const modeChanged = pendingMode !== selectedMode;
+      const weightsChanged = JSON.stringify(pendingWeights) !== JSON.stringify(scoringWeights);
+
+      if (!modeChanged && !weightsChanged) return;
+
+      // Logic to switch mode (originally in changeMode)
+      if (modeChanged) {
+        const formattedMode = pendingMode.replace('_', ' ').toUpperCase();
+        const hasActiveData = caseData.caseId !== '' || isProcessing;
+
+        if (hasActiveData) {
+            const confirm = window.confirm(
+                `Switch Forensic Mode to ${formattedMode}?\n\nChanging the mode will reset the current investigation and clear all data. Do you want to proceed?`
+            );
+            if (!confirm) return;
+        }
       }
+
+      setIsSavingSettings(true);
+      
+      // Simulate persistence delay
+      setTimeout(() => {
+          if (modeChanged) {
+               // If a case is actively processing, stop it
+               if (isProcessing) {
+                  activeRunIdRef.current = null;
+                  setIsProcessing(false);
+               }
+               
+               setSelectedMode(pendingMode);
+               
+               // Reset the active case view to the new mode (Clean Slate)
+               setCaseData({
+                   ...initialCaseState, 
+                   mode: pendingMode 
+               });
+          }
+
+          if (weightsChanged) {
+              setScoringWeights(pendingWeights);
+          }
+
+          setIsSavingSettings(false);
+      }, 800);
   };
 
   // --- DRAG AND DROP HANDLERS ---
@@ -219,8 +280,12 @@ const App: React.FC = () => {
   // --- CORE ORCHESTRATION ---
   const startInvestigation = async (file: File) => {
     if (isProcessing) return;
+    
+    // Generate a unique ID for this run
+    const runId = Math.random().toString(36).substr(2, 9);
+    activeRunIdRef.current = runId;
+    
     setIsProcessing(true);
-    caseActiveRef.current = true; // Mark active
     
     // Reset state with selected mode
     const newId = `CASE-${Math.floor(Math.random() * 100000)}`;
@@ -232,13 +297,13 @@ const App: React.FC = () => {
 
     // Function to update both local and React state safely
     const updateState = (updates: Partial<ForensicCase>) => {
-      if (!caseActiveRef.current) return;
+      if (activeRunIdRef.current !== runId) return;
       currentCaseState = { ...currentCaseState, ...updates };
       setCaseData(prev => ({ ...prev, ...updates }));
     };
 
     const updateNodeState = (key: keyof ForensicCase['nodes'], updates: Partial<NodeResult<any>>) => {
-       if (!caseActiveRef.current) return;
+       if (activeRunIdRef.current !== runId) return;
        const newNodes = {
          ...currentCaseState.nodes,
          [key]: { ...currentCaseState.nodes[key], ...updates }
@@ -254,7 +319,7 @@ const App: React.FC = () => {
     };
 
     const addTraceStep = (type: AnalysisStep['type'], title: string, detail: string, risk?: string) => {
-        if (!caseActiveRef.current) return;
+        if (activeRunIdRef.current !== runId) return;
         const step: AnalysisStep = {
             id: Math.random().toString(36).substr(2, 9),
             order: currentCaseState.analysisTrace.length + 1,
@@ -270,13 +335,13 @@ const App: React.FC = () => {
     };
     
     // Step 1: Initialization
-    if (!caseActiveRef.current) return;
+    if (activeRunIdRef.current !== runId) return;
     addLog('INITIALIZATION', `Created Case ID: ${newId} (Mode: ${selectedMode.toUpperCase()})`, 'info');
     addTraceStep('PLAN', 'Investigation Initialized', `Mode: ${selectedMode}. File received: ${file.name}`);
     addLog('UPLOAD', `Received file: ${file.name} (${(file.size/1024).toFixed(1)} KB)`, 'info');
     
     await delay(300);
-    if (!caseActiveRef.current) return;
+    if (activeRunIdRef.current !== runId) return;
     
     const hash = await generateHash(file);
     const time = new Date().toISOString();
@@ -284,7 +349,7 @@ const App: React.FC = () => {
     addLog('CHAIN OF CUSTODY', `Generated SHA-256: ${hash.substring(0, 16)}...`, 'success');
     
     // Step 2: Metadata
-    if (!caseActiveRef.current) return;
+    if (activeRunIdRef.current !== runId) return;
     addLog('METADATA EXTRACTION', 'Parsing EXIF and GPS data...', 'info');
     const meta = await extractMetadata(file); 
     updateState({ metadata: meta });
@@ -292,7 +357,7 @@ const App: React.FC = () => {
     addLog('METADATA FOUND', `Device: ${meta.cameraModel}, Soft: ${meta.software}`, meta.software?.toLowerCase().includes('adobe') ? 'warning' : 'success');
 
     // Step 3: Global Analysis (Heavy Lifting)
-    if (!caseActiveRef.current) return;
+    if (activeRunIdRef.current !== runId) return;
     addLog('AGENT EXECUTION', 'Dispatching image to Gemini Vision & Signal Processors...', 'info');
     updateState({ currentStep: 'Processing Visual & Signal Data...' });
     
@@ -307,12 +372,11 @@ const App: React.FC = () => {
        return;
     }
     
-    if (!caseActiveRef.current) return;
+    if (activeRunIdRef.current !== runId) return;
 
     addLog('DATA ACQUIRED', 'Raw analysis data received. Beginning Agent Planner loop...', 'success');
 
     // Step 4: Dynamic Execution Loop
-    // Define available runners
     const nodeRunners: Record<string, (ctx: GlobalAnalysisContext) => Promise<Partial<NodeResult<any>>>> = {
       deepfake: runDeepfakeNode,
       dct: runDCTNode,
@@ -330,7 +394,7 @@ const App: React.FC = () => {
     let iterations = 0;
 
     while (iterations < maxIterations) {
-       if (!caseActiveRef.current) return;
+       if (activeRunIdRef.current !== runId) return;
 
        const availableKeys = Object.keys(currentCaseState.nodes).filter(k => !completedNodeKeys.has(k));
        
@@ -355,7 +419,7 @@ const App: React.FC = () => {
          plan = { nextNode: availableKeys[0] || 'FINISH', reasoning: "Planner error, proceeding sequentially." };
        }
        
-       if (!caseActiveRef.current) return;
+       if (activeRunIdRef.current !== runId) return;
 
        if (plan.nextNode === 'FINISH') {
          if (availableKeys.length > 0) {
@@ -385,7 +449,7 @@ const App: React.FC = () => {
        
        const result = await nodeRunners[nodeKey](analysisContext);
        
-       if (!caseActiveRef.current) return;
+       if (activeRunIdRef.current !== runId) return;
 
        updateNodeState(nodeKey as any, { ...result, status: 'completed' });
        
@@ -399,28 +463,18 @@ const App: React.FC = () => {
     }
 
     // Step 5: Scoring
-    if (!caseActiveRef.current) return;
+    if (activeRunIdRef.current !== runId) return;
     updateState({ currentStep: 'Calculating Weighted Confidence Scores...' });
     
-    // Calculate score based only on COMPLETED nodes
-    const weights: Record<string, number> = { 
-        deepfake: 0.2, 
-        dct: 0.1, 
-        prnu: 0.1, 
-        clone: 0.1, 
-        ela: 0.1, 
-        noise: 0.1, 
-        lighting: 0.05, 
-        strings: 0.05,
-        region_quality: 0.2 // High weight for visual quality check
-    };
+    // Calculate score based only on COMPLETED nodes using configured weights (Active weights)
     let totalScore = 0;
     let totalWeight = 0;
 
     (Object.keys(currentCaseState.nodes) as Array<keyof typeof currentCaseState.nodes>).forEach(key => {
         if (completedNodeKeys.has(key)) {
             const n = currentCaseState.nodes[key];
-            const weight = weights[key] || 0.1;
+            // Use current configured weight or fallback
+            const weight = scoringWeights[key as keyof typeof scoringWeights] || 0.05;
             totalScore += (n.score || 0) * weight;
             totalWeight += weight;
         }
@@ -432,13 +486,13 @@ const App: React.FC = () => {
     addLog('SCORING', `Final Authenticity Score Calculated: ${finalScore.toFixed(2)}`, 'info');
 
     // Step 6: Synthesis (Gemini)
-    if (!caseActiveRef.current) return;
+    if (activeRunIdRef.current !== runId) return;
     updateState({ currentStep: 'Synthesizing Final Report (AI Agent)...', finalScore });
     addLog('AGENT REASONING', 'Contacting LLM for executive summary generation...', 'info');
     
     const report = await generateForensicReport(currentCaseState);
     
-    if (!caseActiveRef.current) return;
+    if (activeRunIdRef.current !== runId) return;
 
     const finalCaseState = {
         ...currentCaseState,
@@ -469,7 +523,7 @@ const App: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
               <Scan className="text-cyan-400 w-8 h-8 flex-shrink-0" />
-              <span>SENTINEL <span className="text-slate-500 font-light">FORENSICS</span></span>
+              <span>KSHURA <span className="text-slate-500 font-light">FORENSICS</span></span>
             </h1>
             <p className="text-slate-400 text-sm mt-1">Autonomous Digital Image Verification Agent</p>
           </div>
@@ -763,7 +817,11 @@ const App: React.FC = () => {
     </div>
   );
 
-  const renderSettings = () => (
+  const renderSettings = () => {
+      // Calculate change status
+      const hasChanges = pendingMode !== selectedMode || JSON.stringify(pendingWeights) !== JSON.stringify(scoringWeights);
+
+      return (
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-2xl">
           <h1 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
               <SettingsIcon className="w-8 h-8 text-cyan-400" />
@@ -777,9 +835,9 @@ const App: React.FC = () => {
                   <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider border-b border-slate-800 pb-2">Forensic Investigation Mode</h3>
                   <div className="grid grid-cols-3 gap-4">
                       <button
-                        onClick={() => changeMode('general')}
+                        onClick={() => setPendingMode('general')}
                         className={`flex flex-col items-center p-4 rounded-lg border transition-all ${
-                          selectedMode === 'general' 
+                          pendingMode === 'general' 
                             ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-lg' 
                             : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'
                         }`}
@@ -787,14 +845,14 @@ const App: React.FC = () => {
                         <Shield className="w-6 h-6 mb-2" />
                         <span className="font-bold text-xs">General</span>
                         <div className="w-full flex justify-center mt-2">
-                            {selectedMode === 'general' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                            {pendingMode === 'general' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                         </div>
                       </button>
 
                       <button
-                        onClick={() => changeMode('insurance')}
+                        onClick={() => setPendingMode('insurance')}
                         className={`flex flex-col items-center p-4 rounded-lg border transition-all ${
-                          selectedMode === 'insurance' 
+                          pendingMode === 'insurance' 
                             ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-lg' 
                             : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'
                         }`}
@@ -802,14 +860,14 @@ const App: React.FC = () => {
                         <Briefcase className="w-6 h-6 mb-2" />
                         <span className="font-bold text-xs">Insurance</span>
                          <div className="w-full flex justify-center mt-2">
-                            {selectedMode === 'insurance' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                            {pendingMode === 'insurance' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                         </div>
                       </button>
 
                       <button
-                        onClick={() => changeMode('customer_care')}
+                        onClick={() => setPendingMode('customer_care')}
                         className={`flex flex-col items-center p-4 rounded-lg border transition-all ${
-                          selectedMode === 'customer_care' 
+                          pendingMode === 'customer_care' 
                             ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-lg' 
                             : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'
                         }`}
@@ -817,62 +875,81 @@ const App: React.FC = () => {
                         <ShoppingBag className="w-6 h-6 mb-2" />
                         <span className="font-bold text-xs">Customer Care</span>
                          <div className="w-full flex justify-center mt-2">
-                            {selectedMode === 'customer_care' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                            {pendingMode === 'customer_care' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                         </div>
                       </button>
                   </div>
                   <p className="text-[10px] text-slate-600 mt-2">Changing the mode switches the underlying archives and agent persona.</p>
               </div>
 
+              {/* Scoring Weights Config */}
               <div>
-                  <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider border-b border-slate-800 pb-2">API Configuration</h3>
-                  <div className="space-y-4">
-                      <div>
-                          <label className="block text-xs text-slate-500 mb-1">Gemini API Key</label>
-                          <div className="flex gap-2">
+                  <div className="flex justify-between items-end border-b border-slate-800 pb-2 mb-4">
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Scoring Model Configuration</h3>
+                      <button 
+                         onClick={() => setPendingWeights(DEFAULT_WEIGHTS)}
+                         className="text-[10px] flex items-center gap-1 text-cyan-400 hover:text-cyan-300"
+                      >
+                          <RotateCcw className="w-3 h-3" /> Reset Defaults
+                      </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                      {Object.entries(pendingWeights).map(([key, weight]) => (
+                          <div key={key}>
+                              <div className="flex justify-between items-center mb-1">
+                                  <label className="text-[10px] text-slate-400 uppercase font-mono tracking-wide flex items-center gap-2">
+                                      <Sliders className="w-3 h-3 text-slate-600" />
+                                      {key.replace('_', ' ')}
+                                  </label>
+                                  <span className="text-xs font-bold text-cyan-500 font-mono">{(weight * 100).toFixed(0)}%</span>
+                              </div>
                               <input 
-                                  type="password" 
-                                  value="********************************"
-                                  disabled
-                                  className="flex-1 bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-400 text-sm font-mono cursor-not-allowed"
+                                  type="range" 
+                                  min="0" 
+                                  max="0.5" 
+                                  step="0.05"
+                                  value={weight}
+                                  onChange={(e) => setPendingWeights(prev => ({ ...prev, [key]: parseFloat(e.target.value) }))}
+                                  className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500 hover:accent-cyan-400"
                               />
-                              <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded text-xs font-bold text-slate-300 transition-colors">
-                                  Update
-                              </button>
                           </div>
-                          <p className="text-[10px] text-slate-600 mt-1">Key is loaded from process.env.API_KEY</p>
-                      </div>
+                      ))}
                   </div>
+                  <p className="text-[10px] text-slate-600 mt-4">Adjust the influence of each forensic module on the final authenticity score. Higher weights mean that module's result has more impact.</p>
               </div>
 
-              <div>
-                  <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider border-b border-slate-800 pb-2">Notifications</h3>
-                  <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                          <Bell className="w-5 h-5 text-slate-400" />
-                          <div>
-                              <div className="text-sm text-slate-200">Analysis Complete Alert</div>
-                              <div className="text-xs text-slate-500">Play a sound when forensic analysis finishes.</div>
-                          </div>
-                      </div>
-                      <div className="w-10 h-5 bg-cyan-900/50 rounded-full relative cursor-pointer border border-cyan-800">
-                          <div className="absolute right-0.5 top-0.5 w-4 h-4 bg-cyan-400 rounded-full shadow"></div>
-                      </div>
+               {/* SAVE BUTTON SECTION */}
+              <div className="pt-6 border-t border-slate-800 flex items-center justify-between">
+                  <div className="text-xs text-slate-500">
+                      Changes are applied to the active session immediately. Save to persist configuration.
                   </div>
-              </div>
-
-              <div>
-                  <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider border-b border-slate-800 pb-2">System Info</h3>
-                  <div className="grid grid-cols-2 gap-4 text-xs font-mono text-slate-400">
-                      <div>Version: <span className="text-slate-200">2.4.1 (Stable)</span></div>
-                      <div>Build: <span className="text-slate-200">2024-10-27</span></div>
-                      <div>Engine: <span className="text-slate-200">React + Gemini Flash 2.5</span></div>
-                      <div>Status: <span className="text-emerald-400">Operational</span></div>
-                  </div>
+                  <button 
+                    onClick={handleSaveSettings}
+                    disabled={!hasChanges || isSavingSettings}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded font-bold text-sm transition-all shadow-lg ${
+                        (!hasChanges || isSavingSettings) 
+                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' 
+                        : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-500/20 active:scale-95'
+                    }`}
+                  >
+                    {isSavingSettings ? (
+                        <>
+                           <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
+                           SAVING...
+                        </>
+                    ) : (
+                        <>
+                           <Save className="w-4 h-4" />
+                           SAVE SETTINGS
+                        </>
+                    )}
+                  </button>
               </div>
           </div>
       </div>
-  );
+      );
+  };
 
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-200 font-sans">
@@ -886,13 +963,24 @@ const App: React.FC = () => {
       />
 
       {/* Navigation Sidebar */}
-      <NavBar activeTab={activeTab} setActiveTab={setActiveTab} onNewCase={handleNewCase} />
+      <NavBar activeTab={activeTab} setActiveTab={setActiveTab} onNewCase={handleNewCase} currentMode={selectedMode} />
 
       {/* Right Sidebar - Audit Log (Only on Home) */}
-      {activeTab === 'home' && <AuditLog logs={caseData.auditLog} />}
+      {activeTab === 'home' && (
+        <AuditLog 
+            logs={caseData.auditLog} 
+            width={auditLogWidth} 
+            isOpen={isAuditLogOpen}
+            onToggle={() => setIsAuditLogOpen(!isAuditLogOpen)}
+            onResize={setAuditLogWidth}
+        />
+      )}
 
       {/* Main Content Area */}
-      <div className={`flex-1 p-8 transition-all duration-300 ${activeTab === 'home' ? 'ml-64 mr-80' : 'ml-64'}`}>
+      <div 
+        className="flex-1 p-8 transition-all duration-300 ml-64"
+        style={{ marginRight: activeTab === 'home' ? (isAuditLogOpen ? auditLogWidth : 48) : 0 }}
+      >
          {activeTab === 'home' && renderHome()}
          {activeTab === 'history' && renderHistory()}
          {activeTab === 'settings' && renderSettings()}

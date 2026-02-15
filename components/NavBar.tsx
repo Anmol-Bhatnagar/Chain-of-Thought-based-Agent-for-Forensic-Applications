@@ -5,22 +5,44 @@ interface NavBarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onNewCase: () => void;
+  currentMode: string;
 }
 
-const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, onNewCase }) => {
+const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, onNewCase, currentMode }) => {
   const menuItems = [
     { id: 'home', label: 'Active Investigation', icon: <Home className="w-5 h-5" /> },
     { id: 'history', label: 'Case Archives', icon: <Clock className="w-5 h-5" /> },
     { id: 'settings', label: 'System Settings', icon: <Settings className="w-5 h-5" /> },
   ];
 
+  const getModeColor = () => {
+      switch(currentMode) {
+          case 'insurance': return 'bg-emerald-500';
+          case 'customer_care': return 'bg-amber-500';
+          default: return 'bg-cyan-500';
+      }
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-950 border-r border-slate-800 w-64 fixed left-0 top-0 bottom-0 z-20">
-      <div className="p-6 flex items-center gap-3 border-b border-slate-800">
-        <Shield className="w-8 h-8 text-cyan-400" />
-        <div>
-          <h1 className="font-bold text-slate-100 tracking-tight">SENTINEL</h1>
-          <p className="text-[10px] text-slate-500 tracking-wider">FORENSIC CORE</p>
+      <div className="p-6 border-b border-slate-800">
+        <div className="flex items-center gap-3 mb-4">
+            <Shield className="w-8 h-8 text-cyan-400" />
+            <div>
+            <h1 className="font-bold text-slate-100 tracking-tight">KSHURA</h1>
+            <p className="text-[10px] text-slate-500 tracking-wider">FORENSIC CORE</p>
+            </div>
+        </div>
+
+        {/* Current Mode Indicator */}
+        <div className="bg-slate-900 border border-slate-800 rounded-md p-2.5 flex items-center justify-between shadow-inner">
+            <div className="flex items-center gap-2">
+                <div className={`w-1.5 h-1.5 rounded-full ${getModeColor()} shadow-[0_0_8px_currentColor]`}></div>
+                <span className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">Active Mode</span>
+            </div>
+            <span className="text-[10px] font-bold text-slate-200 uppercase tracking-widest">
+                {currentMode.replace('_', ' ')}
+            </span>
         </div>
       </div>
       
@@ -49,10 +71,6 @@ const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, onNewCase }) =
             {item.label}
           </button>
         ))}
-      </div>
-
-      <div className="p-4 border-t border-slate-800 text-xs text-slate-600 text-center font-mono">
-        v2.4.1 STABLE
       </div>
     </div>
   );

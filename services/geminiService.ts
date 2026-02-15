@@ -139,7 +139,7 @@ const getAnalysisPrompt = (mode: InvestigationMode, extractedStrings: string[]) 
 
   // General Purpose
   return `
-    You are Sentinel-Zero, an elite AI Forensic Image Analyst.
+    You are Kshura-Zero, an elite AI Forensic Image Analyst.
     Your objective is to detect ANY sign of digital manipulation, AI generation (GAN/Diffusion), or editing with extreme scrutiny.
 
     Conduct a rigorous Step-by-Step Analysis:

@@ -25,7 +25,7 @@ const MapPreview: React.FC<MapPreviewProps> = ({ lat, lng, label }) => {
       });
 
 
-      L.tileLayer('https:
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap &copy; CARTO',
         subdomains: 'abcd',
         maxZoom: 19

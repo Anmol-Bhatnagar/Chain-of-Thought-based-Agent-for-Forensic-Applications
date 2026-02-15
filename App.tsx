@@ -440,8 +440,8 @@ const App: React.FC = () => {
        const nodeName = currentCaseState.nodes[nodeKey as keyof typeof currentCaseState.nodes].name;
 
        addTraceStep('PLAN', `Supervisor Decision: Run ${nodeName}`, `Reason: ${plan.reasoning}`);
-       addLog('PLANNER', `Next: ${nodeName}
-
+       addLog('PLANNER', `Next: ${nodeName} // ${plan.reasoning}`, 'info');
+       
        updateNodeState(nodeKey as any, { status: 'processing' });
        updateState({ currentStep: `Running ${nodeName}...` });
 

@@ -193,6 +193,24 @@ const App: React.FC = () => {
     setActiveTab('home');
   };
 
+  const deleteCase = (mode: InvestigationMode, caseId: string) => {
+    if (window.confirm("Are you sure you want to delete this case from history?")) {
+      setHistory(prev => ({
+        ...prev,
+        [mode]: prev[mode].filter(c => c.caseId !== caseId)
+      }));
+    }
+  };
+
+  const clearHistory = (mode: InvestigationMode) => {
+    if (window.confirm(`Are you sure you want to clear all history for the ${mode.replace('_', ' ')} investigation mode?`)) {
+      setHistory(prev => ({
+        ...prev,
+        [mode]: []
+      }));
+    }
+  };
+
 
   const handleNewCase = () => {
     if (isProcessing) {

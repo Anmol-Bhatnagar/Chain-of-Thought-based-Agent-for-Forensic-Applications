@@ -211,6 +211,38 @@ const App: React.FC = () => {
     }
   };
 
+  const downloadJSON = (data: any, filename: string) => {
+    try {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', url);
+      downloadAnchor.setAttribute('download', filename);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Failed to download JSON:', e);
+      alert('Failed to export JSON file.');
+    }
+  };
+
+  const exportHistoryToJSON = (mode: InvestigationMode) => {
+    const data = history[mode];
+    if (data.length === 0) {
+      alert("No history entries to export for this mode.");
+      return;
+    }
+    const filename = `kshura_forensics_history_${mode}_${new Date().toISOString().slice(0, 10)}.json`;
+    downloadJSON(data, filename);
+  };
+
+  const exportCaseToJSON = (c: ForensicCase) => {
+    const filename = `kshura_forensic_case_${c.caseId}.json`;
+    downloadJSON(c, filename);
+  };
+
 
   const handleNewCase = () => {
     if (isProcessing) {

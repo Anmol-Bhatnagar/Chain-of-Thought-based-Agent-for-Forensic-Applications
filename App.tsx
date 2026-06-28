@@ -301,6 +301,63 @@ const App: React.FC = () => {
     }
   };
 
+  const importHistoryFromJSON = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const importedData = JSON.parse(text);
+        
+        const casesToProcess: ForensicCase[] = Array.isArray(importedData)
+          ? importedData
+          : [importedData];
+
+        if (casesToProcess.length === 0) {
+          alert("Imported file is empty or invalid.");
+          return;
+        }
+
+        const validCases = casesToProcess.filter(c => {
+          return c && typeof c === 'object' && c.caseId && c.fileName && c.fileHash && c.mode;
+        });
+
+        if (validCases.length === 0) {
+          alert("No valid case records found in the JSON file. Ensure the file contains valid Kshura Forensics case exports.");
+          return;
+        }
+
+        setHistory(prev => {
+          const updated = { ...prev };
+          let addedCount = 0;
+          let duplicateCount = 0;
+
+          validCases.forEach(c => {
+            const mode = c.mode as InvestigationMode;
+            if (!updated[mode]) {
+              updated[mode] = [];
+            }
+
+            const exists = updated[mode].some(existing => existing.caseId === c.caseId);
+            if (!exists) {
+              updated[mode] = [c, ...updated[mode]];
+              addedCount++;
+            } else {
+              duplicateCount++;
+            }
+          });
+
+          alert(`Import completed successfully!\nImported: ${addedCount} case(s).\nSkipped duplicates: ${duplicateCount} case(s).`);
+          return updated;
+        });
+
+      } catch (err) {
+        console.error('Failed to parse import JSON:', err);
+        alert('Invalid JSON file. Please make sure you are uploading a valid export file.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
 
   const handleNewCase = () => {
     if (isProcessing) {

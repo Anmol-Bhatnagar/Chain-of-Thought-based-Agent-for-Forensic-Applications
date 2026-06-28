@@ -243,6 +243,64 @@ const App: React.FC = () => {
     downloadJSON(c, filename);
   };
 
+  const exportHistoryToCSV = (mode: InvestigationMode) => {
+    const data = history[mode];
+    if (data.length === 0) {
+      alert("No history entries to export for this mode.");
+      return;
+    }
+
+    try {
+      const headers = ['Case ID', 'File Name', 'SHA-256 Hash', 'Mode', 'Acquisition Time', 'Score', 'Risk Level', 'Camera Model', 'Software', 'Verdict'];
+      
+      const rows = data.map(c => {
+        let riskLevel = 'LOW';
+        if (c.finalScore !== null) {
+          if (c.finalScore < 40) riskLevel = 'CRITICAL';
+          else if (c.finalScore < 60) riskLevel = 'HIGH';
+          else if (c.finalScore < 80) riskLevel = 'MEDIUM';
+        }
+
+        const escapeCSV = (val: any) => {
+          if (val === null || val === undefined) return '';
+          const str = String(val);
+          if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`;
+          }
+          return str;
+        };
+
+        return [
+          escapeCSV(c.caseId),
+          escapeCSV(c.fileName),
+          escapeCSV(c.fileHash),
+          escapeCSV(c.mode),
+          escapeCSV(c.acquisitionTime),
+          escapeCSV(c.finalScore ?? 'N/A'),
+          escapeCSV(riskLevel),
+          escapeCSV(c.metadata?.cameraModel ?? 'N/A'),
+          escapeCSV(c.metadata?.software ?? 'N/A'),
+          escapeCSV(c.finalVerdict ?? 'N/A')
+        ];
+      });
+
+      const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', url);
+      const filename = `kshura_forensics_history_${mode}_${new Date().toISOString().slice(0, 10)}.csv`;
+      downloadAnchor.setAttribute('download', filename);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Failed to export CSV:', e);
+      alert('Failed to export CSV file.');
+    }
+  };
+
 
   const handleNewCase = () => {
     if (isProcessing) {

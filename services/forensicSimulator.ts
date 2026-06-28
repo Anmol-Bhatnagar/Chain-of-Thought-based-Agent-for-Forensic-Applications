@@ -281,7 +281,7 @@ export const runDeepfakeNode = async (context: GlobalAnalysisContext): Promise<P
 export const runDCTNode = async (context: GlobalAnalysisContext): Promise<Partial<NodeResult<any>>> => {
   await delay(600);
 
-  const visualArtifacts = context.geminiResult?.dct.visualArtifacts || false;
+  const visualArtifacts = context.geminiResult?.dct?.visualArtifacts || false;
   const software = (await extractMetadata(context.file)).software || '';
   const suspiciousSoftware = /photoshop|gimp|edit/i.test(software);
 
@@ -304,7 +304,7 @@ export const runDCTNode = async (context: GlobalAnalysisContext): Promise<Partia
   return {
     score,
     riskLevel: risk,
-    inference: context.geminiResult?.dct.inference || inference,
+    inference: context.geminiResult?.dct?.inference || inference,
     data: {
       doubleCompressionDetected: visualArtifacts,
       quantizationConsistency: score,
@@ -315,12 +315,12 @@ export const runDCTNode = async (context: GlobalAnalysisContext): Promise<Partia
 
 export const runPRNUNode = async (context: GlobalAnalysisContext): Promise<Partial<NodeResult<any>>> => {
   await delay(700);
-  const consistent = context.geminiResult?.prnu.noiseConsistent ?? true;
+  const consistent = context.geminiResult?.prnu?.noiseConsistent ?? true;
 
   return {
     score: consistent ? 90 : 40,
     riskLevel: consistent ? 'LOW' : 'HIGH',
-    inference: context.geminiResult?.prnu.inference || (consistent ? "Noise levels appear natural." : "Inconsistent noise patterns detected."),
+    inference: context.geminiResult?.prnu?.inference || (consistent ? "Noise levels appear natural." : "Inconsistent noise patterns detected."),
     data: {
       correlationScore: consistent ? 0.95 : 0.4,
       sensorFingerprintMatch: consistent,

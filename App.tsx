@@ -63,10 +63,25 @@ const App: React.FC = () => {
   const [caseData, setCaseData] = useState<ForensicCase>(initialCaseState);
 
 
-  const [history, setHistory] = useState<Record<InvestigationMode, ForensicCase[]>>({
-    general: [],
-    insurance: [],
-    customer_care: []
+  const [history, setHistory] = useState<Record<InvestigationMode, ForensicCase[]>>(() => {
+    try {
+      const saved = localStorage.getItem('kshura_forensics_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          general: parsed.general || [],
+          insurance: parsed.insurance || [],
+          customer_care: parsed.customer_care || []
+        };
+      }
+    } catch (e) {
+      console.error('Failed to load history from localStorage:', e);
+    }
+    return {
+      general: [],
+      insurance: [],
+      customer_care: []
+    };
   });
 
 
@@ -106,6 +121,14 @@ const App: React.FC = () => {
       setPendingWeights(scoringWeights);
     }
   }, [activeTab, selectedMode, scoringWeights]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('kshura_forensics_history', JSON.stringify(history));
+    } catch (e) {
+      console.error('Failed to save history to localStorage:', e);
+    }
+  }, [history]);
 
 
   const currentModeHistory = history[selectedMode];

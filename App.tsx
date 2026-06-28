@@ -8,7 +8,8 @@ import NavBar from './components/NavBar';
 import {
   Scan, Camera, Fingerprint, Layers, Sun, Copy, Hash, MapPin,
   UploadCloud, PlayCircle, Terminal, AlertOctagon, FileInput, Search, BrainCircuit,
-  Filter, X, Shield, ShoppingBag, Briefcase, Binary, ScanEye, Database, Settings as SettingsIcon, CheckCircle2, RotateCcw, Sliders, Save
+  Filter, X, Shield, ShoppingBag, Briefcase, Binary, ScanEye, Database, Settings as SettingsIcon, CheckCircle2, RotateCcw, Sliders, Save,
+  Trash2, Download, Upload
 } from 'lucide-react';
 import {
   extractMetadata, startGlobalAnalysis,
@@ -106,6 +107,7 @@ const App: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
 
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -888,8 +890,8 @@ const App: React.FC = () => {
 
         {/* Search Bar and Archives */}
         <div className="mb-8 bg-slate-900/50 p-4 rounded-lg border border-slate-800 flex flex-col gap-4">
-            <div className="flex gap-2">
-                <div className="flex-1 flex items-center gap-3 bg-slate-950 border border-slate-800 rounded px-3 py-2 focus-within:border-cyan-500/50 transition-colors">
+            <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between border-b border-slate-800/80 pb-4">
+                <div className="flex-1 flex items-center gap-3 bg-slate-950 border border-slate-800 rounded px-3 py-2 focus-within:border-cyan-500/50 transition-colors max-w-xl">
                     <Search className="w-4 h-4 text-slate-500" />
                     <input
                         type="text"
@@ -899,12 +901,47 @@ const App: React.FC = () => {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className={`px-3 py-2 rounded border transition-colors flex items-center gap-2 ${showFilters ? 'bg-cyan-900/20 border-cyan-500/50 text-cyan-400' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'}`}
-                >
-                    <Filter className="w-4 h-4" />
-                </button>
+                <div className="flex flex-wrap gap-2 items-center">
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={`px-3 py-2 rounded border transition-colors flex items-center gap-2 text-xs font-bold font-mono ${showFilters ? 'bg-cyan-900/20 border-cyan-500/50 text-cyan-400' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'}`}
+                    >
+                        <Filter className="w-3.5 h-3.5" />
+                        <span>FILTERS</span>
+                    </button>
+                    <button
+                        onClick={() => importInputRef.current?.click()}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors text-xs font-bold font-mono"
+                        title="Import JSON history"
+                    >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>IMPORT JSON</span>
+                    </button>
+                    <button
+                        onClick={() => exportHistoryToJSON(selectedMode)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors text-xs font-bold font-mono"
+                        title="Export history to JSON"
+                    >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>EXPORT JSON</span>
+                    </button>
+                    <button
+                        onClick={() => exportHistoryToCSV(selectedMode)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors text-xs font-bold font-mono"
+                        title="Export history to CSV"
+                    >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>EXPORT CSV</span>
+                    </button>
+                    <button
+                        onClick={() => clearHistory(selectedMode)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 border border-rose-900/50 transition-colors text-xs font-bold font-mono"
+                        title="Clear all cases for this mode"
+                    >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>CLEAR ARCHIVES</span>
+                    </button>
+                </div>
             </div>
 
             {/* Expanded Filters */}
@@ -982,12 +1019,21 @@ const App: React.FC = () => {
                                     </span>
                                 </td>
                                 <td className="p-3 text-right">
-                                    <button
-                                        onClick={() => loadCase(c)}
-                                        className="text-cyan-500 hover:text-cyan-300 underline opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                        View Report
-                                    </button>
+                                    <div className="flex justify-end items-center gap-4">
+                                        <button
+                                            onClick={() => loadCase(c)}
+                                            className="text-cyan-500 hover:text-cyan-300 underline opacity-0 group-hover:opacity-100 transition-opacity font-bold font-mono"
+                                        >
+                                            View Report
+                                        </button>
+                                        <button
+                                            onClick={() => deleteCase(c.mode, c.caseId)}
+                                            className="text-rose-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-rose-950/30"
+                                            title="Delete Case"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -1146,6 +1192,21 @@ const App: React.FC = () => {
         onChange={handleFileSelect}
         className="hidden"
         accept="image/*"
+      />
+
+      {/* Hidden Import File Input */}
+      <input
+        type="file"
+        ref={importInputRef}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            importHistoryFromJSON(file);
+            e.target.value = '';
+          }
+        }}
+        className="hidden"
+        accept=".json"
       />
 
       {/* Navigation Sidebar */}

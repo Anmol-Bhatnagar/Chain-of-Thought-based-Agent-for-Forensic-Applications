@@ -183,9 +183,13 @@ const App: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'settings') {
       setPendingMode(selectedMode);
-      setPendingWeights(scoringWeights);
+      setPendingWeights(modeWeights[selectedMode]);
     }
-  }, [activeTab, selectedMode, scoringWeights]);
+  }, [activeTab, selectedMode, modeWeights]);
+
+  useEffect(() => {
+    setPendingWeights(modeWeights[pendingMode]);
+  }, [pendingMode, modeWeights]);
 
   useEffect(() => {
     try {

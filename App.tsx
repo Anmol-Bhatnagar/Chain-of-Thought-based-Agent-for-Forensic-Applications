@@ -720,21 +720,25 @@ const App: React.FC = () => {
 
     let totalScore = 0;
     let totalWeight = 0;
+    const activeWeights = modeWeights[currentCaseState.mode] || DEFAULT_MODE_WEIGHTS[currentCaseState.mode];
 
     (Object.keys(currentCaseState.nodes) as Array<keyof typeof currentCaseState.nodes>).forEach(key => {
         if (completedNodeKeys.has(key)) {
             const n = currentCaseState.nodes[key];
-
-            const weight = scoringWeights[key as keyof typeof scoringWeights] || 0.05;
+            const weight = activeWeights[key] || 0.05;
             totalScore += (n.score || 0) * weight;
             totalWeight += weight;
         }
     });
 
-
     const finalScore = totalWeight > 0 ? (totalScore / totalWeight) : 0;
 
-    addLog('SCORING', `Final Authenticity Score Calculated: ${finalScore.toFixed(2)}`, 'info');
+    const weightLogDetails = (Object.keys(currentCaseState.nodes) as Array<keyof typeof currentCaseState.nodes>)
+      .filter(key => completedNodeKeys.has(key))
+      .map(key => `${key}: ${(activeWeights[key] || 0.05).toFixed(2)}`)
+      .join(', ');
+    addLog('SCORING', `Applied scoring weights for ${currentCaseState.mode} mode: { ${weightLogDetails} }`, 'info');
+    addLog('SCORING', `Final Authenticity Score Calculated: ${finalScore.toFixed(2)}`, 'success');
 
 
     if (activeRunIdRef.current !== runId) return;

@@ -450,7 +450,7 @@ const App: React.FC = () => {
 
   const handleSaveSettings = () => {
       const modeChanged = pendingMode !== selectedMode;
-      const weightsChanged = JSON.stringify(pendingWeights) !== JSON.stringify(scoringWeights);
+      const weightsChanged = JSON.stringify(pendingWeights) !== JSON.stringify(modeWeights[pendingMode]);
 
       if (!modeChanged && !weightsChanged) return;
 
@@ -471,24 +471,38 @@ const App: React.FC = () => {
 
 
       setTimeout(() => {
-          if (modeChanged) {
+          if (weightsChanged) {
+              setModeWeights(prev => {
+                  const updated = {
+                      ...prev,
+                      [pendingMode]: pendingWeights
+                  };
+                  try {
+                      localStorage.setItem('kshura_forensics_mode_weights', JSON.stringify(updated));
+                  } catch (e) {
+                      console.error('Failed to save mode weights:', e);
+                  }
+                  return updated;
+              });
+          }
 
+          if (modeChanged) {
                if (isProcessing) {
                   activeRunIdRef.current = null;
                   setIsProcessing(false);
                }
 
                setSelectedMode(pendingMode);
-
+               try {
+                   localStorage.setItem('kshura_forensics_selected_mode', pendingMode);
+               } catch (e) {
+                   console.error('Failed to save selected mode:', e);
+               }
 
                setCaseData({
                    ...initialCaseState,
                    mode: pendingMode
                });
-          }
-
-          if (weightsChanged) {
-              setScoringWeights(pendingWeights);
           }
 
           setIsSavingSettings(false);

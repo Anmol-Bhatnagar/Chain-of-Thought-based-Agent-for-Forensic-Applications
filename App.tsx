@@ -32,6 +32,42 @@ const DEFAULT_WEIGHTS = {
   strings: 0.05,
 };
 
+const DEFAULT_MODE_WEIGHTS: Record<InvestigationMode, Record<string, number>> = {
+  general: {
+    deepfake: 0.2,
+    region_quality: 0.2,
+    dct: 0.1,
+    prnu: 0.1,
+    clone: 0.1,
+    ela: 0.1,
+    noise: 0.1,
+    lighting: 0.05,
+    strings: 0.05,
+  },
+  insurance: {
+    deepfake: 0.1,
+    region_quality: 0.25,
+    dct: 0.1,
+    prnu: 0.05,
+    clone: 0.15,
+    ela: 0.1,
+    noise: 0.1,
+    lighting: 0.1,
+    strings: 0.05,
+  },
+  customer_care: {
+    deepfake: 0.1,
+    region_quality: 0.25,
+    dct: 0.1,
+    prnu: 0.05,
+    clone: 0.15,
+    ela: 0.1,
+    noise: 0.1,
+    lighting: 0.05,
+    strings: 0.1,
+  }
+};
+
 
 const initialCaseState: ForensicCase = {
   caseId: '',
@@ -93,12 +129,39 @@ const App: React.FC = () => {
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
 
-  const [selectedMode, setSelectedMode] = useState<InvestigationMode>('general');
+  const [selectedMode, setSelectedMode] = useState<InvestigationMode>(() => {
+    try {
+      const saved = localStorage.getItem('kshura_forensics_selected_mode');
+      if (saved && (saved === 'general' || saved === 'insurance' || saved === 'customer_care')) {
+        return saved as InvestigationMode;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return 'general';
+  });
 
-  const [scoringWeights, setScoringWeights] = useState(DEFAULT_WEIGHTS);
+  const [modeWeights, setModeWeights] = useState<Record<InvestigationMode, Record<string, number>>>(() => {
+    try {
+      const saved = localStorage.getItem('kshura_forensics_mode_weights');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          general: parsed.general || DEFAULT_MODE_WEIGHTS.general,
+          insurance: parsed.insurance || DEFAULT_MODE_WEIGHTS.insurance,
+          customer_care: parsed.customer_care || DEFAULT_MODE_WEIGHTS.customer_care,
+        };
+      }
+    } catch (e) {
+      console.error('Failed to load mode weights from localStorage:', e);
+    }
+    return DEFAULT_MODE_WEIGHTS;
+  });
 
-  const [pendingMode, setPendingMode] = useState<InvestigationMode>('general');
-  const [pendingWeights, setPendingWeights] = useState(DEFAULT_WEIGHTS);
+  const scoringWeights = modeWeights[selectedMode];
+
+  const [pendingMode, setPendingMode] = useState<InvestigationMode>(selectedMode);
+  const [pendingWeights, setPendingWeights] = useState(modeWeights[selectedMode]);
 
 
   const [auditLogWidth, setAuditLogWidth] = useState(320);

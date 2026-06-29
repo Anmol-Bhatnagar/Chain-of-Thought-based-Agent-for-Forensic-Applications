@@ -509,6 +509,19 @@ const App: React.FC = () => {
       }, 800);
   };
 
+  const handleResetAllSettings = () => {
+    if (window.confirm("Are you sure you want to reset all forensic modes to their default scoring weights?")) {
+      setModeWeights(DEFAULT_MODE_WEIGHTS);
+      setPendingWeights(DEFAULT_MODE_WEIGHTS[pendingMode]);
+      try {
+        localStorage.setItem('kshura_forensics_mode_weights', JSON.stringify(DEFAULT_MODE_WEIGHTS));
+      } catch (e) {
+        console.error('Failed to save default mode weights:', e);
+      }
+      alert("All scoring weights have been reset to factory defaults.");
+    }
+  };
+
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -1203,12 +1216,22 @@ const App: React.FC = () => {
               <div>
                   <div className="flex justify-between items-end border-b border-slate-800 pb-2 mb-4">
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider">Scoring Model Configuration</h3>
-                      <button
-                         onClick={() => setPendingWeights(DEFAULT_WEIGHTS)}
-                         className="text-[10px] flex items-center gap-1 text-cyan-400 hover:text-cyan-300"
-                      >
-                          <RotateCcw className="w-3 h-3" /> Reset Defaults
-                      </button>
+                      <div className="flex gap-4">
+                          <button
+                             onClick={() => setPendingWeights(DEFAULT_MODE_WEIGHTS[pendingMode])}
+                             className="text-[10px] flex items-center gap-1 text-cyan-400 hover:text-cyan-350 transition-colors font-bold font-mono"
+                             title="Reset weights for the active mode to factory defaults"
+                          >
+                              <RotateCcw className="w-3 h-3" /> RESET CURRENT MODE DEFAULTS
+                          </button>
+                          <button
+                             onClick={handleResetAllSettings}
+                             className="text-[10px] flex items-center gap-1 text-rose-400 hover:text-rose-300 transition-colors font-bold font-mono"
+                             title="Reset all modes weights to default settings"
+                          >
+                              <RotateCcw className="w-3 h-3" /> RESET ALL MODES
+                          </button>
+                      </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">

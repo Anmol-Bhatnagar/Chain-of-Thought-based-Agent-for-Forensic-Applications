@@ -174,6 +174,7 @@ const App: React.FC = () => {
 
 
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [showSaveToast, setShowSaveToast] = useState(false);
 
 
 
@@ -506,6 +507,8 @@ const App: React.FC = () => {
           }
 
           setIsSavingSettings(false);
+          setShowSaveToast(true);
+          setTimeout(() => setShowSaveToast(false), 3000);
       }, 800);
   };
 
@@ -1262,7 +1265,13 @@ const App: React.FC = () => {
                {/* SAVE BUTTON SECTION */}
               <div className="pt-6 border-t border-slate-800 flex items-center justify-between">
                   <div className="text-xs text-slate-500">
-                      Changes are applied to the active session immediately. Save to persist configuration.
+                      {showSaveToast ? (
+                          <span className="text-emerald-400 font-bold flex items-center gap-1.5 animate-pulse">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Settings saved successfully!
+                          </span>
+                      ) : (
+                          "Changes are applied to the active session immediately. Save to persist configuration."
+                      )}
                   </div>
                   <button
                     onClick={handleSaveSettings}
